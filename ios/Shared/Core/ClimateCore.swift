@@ -12,10 +12,10 @@ struct ThinQConfig: Codable, Equatable {
     init(token: String, country: String, region: String, clientID: String = "climate-" + UUID().uuidString) throws {
         let token = token.trimmingCharacters(in: .whitespacesAndNewlines)
         let country = country.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
-        guard !token.isEmpty, !token.contains("\r"), !token.contains("\n"),
-              country.range(of: "^[A-Z]{2}$", options: .regularExpression) != nil,
-              ["kic", "aic", "eic"].contains(region),
-              clientID.range(of: "^[a-zA-Z0-9_-]{1,100}$", options: .regularExpression) != nil else { throw ThinQError.settings }
+        guard !token.isEmpty, token.utf8.allSatisfy({ (33...126).contains($0) }),
+              country.utf8.count == 2, country.utf8.allSatisfy({ (65...90).contains($0) }),
+              ["kic", "aic", "eic"].contains(region), (1...100).contains(clientID.utf8.count),
+              clientID.utf8.allSatisfy({ (65...90).contains($0) || (97...122).contains($0) || (48...57).contains($0) || $0 == 45 || $0 == 95 }) else { throw ThinQError.settings }
         self.token = token; self.country = country; self.region = region; self.clientID = clientID
     }
     func request(deviceID: String? = nil) -> URLRequest {

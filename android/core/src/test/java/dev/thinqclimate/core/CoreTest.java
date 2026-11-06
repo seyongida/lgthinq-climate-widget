@@ -11,7 +11,7 @@ public final class CoreTest {
         check(c.endpoint("a/b ?#").toString().endsWith("a%2Fb%20%3F%23/state"),"ID encoding");
         for(String region: List.of("kic","aic","eic")) check(new Climate.Config("p","US",region,"test").endpoint(null).getHost().equals("api-"+region+".lgthinq.com"),"region routing");
         check(!c.toString().contains("test-pat"),"credential redaction");
-        for(String token: List.of("", " ", "x\r\ninjected: true")) invalid(() -> new Climate.Config(token,"KR","kic","test"));
+        for(String token: List.of("", " ", "x\r\ninjected: true", "x\ty", "x y", "xé")) invalid(() -> new Climate.Config(token,"KR","kic","test"));
         for(String country:List.of("K","KRR","K1","KR\nA")) invalid(() -> new Climate.Config("p",country,"kic","test"));
         invalid(() -> new Climate.Config("p","KR","evil.com","test"));
         invalid(() -> new Climate.Config("p","KR","kic","x\r\ny"));

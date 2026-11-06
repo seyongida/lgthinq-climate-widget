@@ -14,7 +14,7 @@ public final class Climate {
         public Config {
             token = token.trim(); country = country.trim().toUpperCase(Locale.ROOT);
             region = region.toLowerCase(Locale.ROOT);
-            if (token.isEmpty() || token.contains("\n") || token.contains("\r") || !country.matches("[A-Z]{2}") ||
+            if (token.isEmpty() || !token.chars().allMatch(ch -> ch >= 33 && ch <= 126) || !country.matches("[A-Z]{2}") ||
                 !Set.of("kic", "aic", "eic").contains(region) || !clientId.matches("[a-zA-Z0-9_-]{1,100}"))
                 throw new IllegalArgumentException("PAT, 국가 코드, 서버 지역을 확인해 주세요.");
         }

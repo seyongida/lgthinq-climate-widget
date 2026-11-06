@@ -17,7 +17,8 @@ final class ClimateCoreTests: XCTestCase {
         XCTAssertTrue(ids.allSatisfy { $0.range(of: "^[A-Za-z0-9_-]{22}$", options: .regularExpression) != nil })
     }
     func testValidation() {
-        for token in ["", " ", "a\r\ninjected: true"] { XCTAssertThrowsError(try ThinQConfig(token: token, country: "KR", region: "kic")) }
+        for token in ["", " ", "a\r\ninjected: true", "a\tb", "a b", "aé"] { XCTAssertThrowsError(try ThinQConfig(token: token, country: "KR", region: "kic")) }
+        XCTAssertThrowsError(try ThinQConfig(token: "p", country: "KR", region: "kic", clientID: "test\n"))
         for country in ["K", "KRR", "K1"] { XCTAssertThrowsError(try ThinQConfig(token: "p", country: country, region: "kic")) }
         XCTAssertThrowsError(try ThinQConfig(token: "p", country: "KR", region: "evil.com"))
     }
