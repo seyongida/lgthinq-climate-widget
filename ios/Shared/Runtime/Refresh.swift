@@ -14,27 +14,29 @@ final class StoreLock {
     deinit { flock(fd, LOCK_UN); close(fd) }
 }
 enum Refresher {
-    static func refresh() async -> Snapshot? {
+    static func refresh() async {
         let store = ClimateStore()
-        guard let lock = StoreLock() else { return store.snapshot() }
+        guard let lock = StoreLock() else { return }
         defer { withExtendedLifetime(lock) {} }
-        guard let before = store.snapshot() else { return nil }
         let now = Date()
-        if before.selection.id == DemoData.deviceID {
-            store.write(Snapshot(selection: before.selection, reading: DemoData.reading(at: now), error: nil, attemptedAt: now))
-            return store.snapshot()
+        var config: ThinQConfig?
+        var configLoaded = false
+        for (index, device) in store.devices().enumerated() {
+            if DemoData.isDemo(device.id) {
+                store.write(DeviceState(reading: DemoData.reading(at: now, offset: Double(index)), error: nil, attemptedAt: now), for: device.id)
+                continue
+            }
+            let before = store.state(for: device.id)
+            if let attempt = before.attemptedAt, now >= attempt, now.timeIntervalSince(attempt) < 60 { continue }
+            store.write(DeviceState(reading: before.reading, error: before.error, attemptedAt: now), for: device.id)
+            do {
+                if !configLoaded { config = try store.config(); configLoaded = true }
+                guard let config else { throw ThinQError.settings }
+                let reading = try await ThinQClient(config: config).reading(id: device.id)
+                store.write(DeviceState(reading: reading, error: nil, attemptedAt: now), for: device.id)
+            } catch {
+                store.write(DeviceState(reading: before.reading, error: (error as? ThinQError ?? .network).localizedDescription, attemptedAt: now), for: device.id)
+            }
         }
-        if let attempt = before.attemptedAt, now >= attempt, now.timeIntervalSince(attempt) < 60 { return before }
-        let pending = Snapshot(selection: before.selection, reading: before.reading, error: before.error, attemptedAt: now)
-        store.write(pending)
-        do {
-            guard let config = try store.config() else { throw ThinQError.settings }
-            let reading = try await ThinQClient(config: config).reading(id: before.selection.id)
-            store.write(Snapshot(selection: before.selection, reading: reading, error: nil, attemptedAt: now))
-        } catch {
-            store.write(Snapshot(selection: before.selection, reading: before.reading,
-                                 error: (error as? ThinQError ?? .network).localizedDescription, attemptedAt: now))
-        }
-        return store.snapshot()
     }
 }

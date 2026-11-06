@@ -5,7 +5,7 @@ import sys
 version = sys.argv[1]
 repo = os.environ.get('GH_REPO', 'seyongida/lgthinq-climate-widget')
 url = f'https://github.com/{repo}/releases/download/{version}/ThinQ-Climate.apk'
-print(f'''# ThinQ Climate {version}
+print(f'''# Climate Widget for ThinQ {version}
 
 ## Android
 

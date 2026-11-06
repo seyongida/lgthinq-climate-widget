@@ -1,5 +1,5 @@
 <resources>
- <string name="app_name">ThinQ Climate</string>
+ <string name="app_name">Climate Widget</string>
  <string name="widget_name">Climate · 1 × 1</string>
  <string name="widget_pair_name">Climate · 1 × 2</string>
  <string name="widget_horizontal_name">Climate · 2 × 1</string>

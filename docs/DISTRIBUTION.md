@@ -28,8 +28,8 @@ GitHub Actions 저장소 Secrets:
 버전 번호를 `android/app/build.gradle.kts`와 `ios/project.yml`에서 변경하고 검사한 뒤 태그를 게시합니다.
 
 ```sh
-git tag v1.3.0
-git push origin v1.3.0
+git tag v1.4.0
+git push origin v1.4.0
 ```
 
 `Publish Android release`는 코어/Release 단위 테스트/lint → APK 빌드 → 공개 자격 증명/버전/서명 검사 → GitHub Releases 게시 순서로 실행합니다. 게시 파일은 `ThinQ-Climate.apk`, `SHA256SUMS`, `SIGNING_CERTIFICATE.txt`, `INSTALL.md`입니다. 같은 릴리즈를 덮어쓰지 않으며 수정은 새 버전 태그로 배포합니다.
@@ -67,8 +67,22 @@ git push origin v1.3.0
 ```text
 This app reads temperature and humidity from a user's LG ThinQ humidifier using a Personal Access Token the user issues from LG. It is not affiliated with LG.
 
-No sign-in is needed for review. On the first screen, tap "샘플 데이터로 체험하기" (Try with sample data). The app then shows on-device sample values, clearly labelled as sample data, and the home screen widget shows the same values. Tap "체험 종료" to end the demo.
+No sign-in is needed for review. On the first screen, tap "샘플 데이터로 체험하기" (Try with sample data). The app then shows on-device sample values, clearly labelled as sample data, and the home screen widget shows the same values. Open the gear icon and tap "체험 종료" to end the demo.
 ```
+
+### 심사 거절 시 Ad Hoc 대체 경로
+
+`Watch TestFlight review`가 1시간마다 최신 심사 상태를 확인합니다. 거절되면 `Publish iOS Ad Hoc install`을 한 번 실행해 지정한 기기만 설치할 수 있는 IPA를 만들고 설치 페이지에 직접 설치 버튼을 추가합니다. App Store Connect API 키가 없으면 아무 일도 하지 않고, 기기가 등록되지 않았으면 실패로 끝나 GitHub 알림을 보냅니다.
+
+설정은 한 번만 하면 됩니다. App Store Connect → 사용자 및 액세스 → 통합에서 Admin 키를 만들고 `.p8`을 내려받은 뒤 실행합니다. 키, 인증서, 기기 목록은 GitHub Secrets에만 저장합니다.
+
+```sh
+python3 scripts/asc.py setup --key ~/Downloads/AuthKey_XXXX.p8 --key-id XXXX --issuer YYYY --device "친구 iPhone|UDID"
+```
+
+`--device`는 저장된 목록을 교체합니다. 수동 실행은 `gh workflow run ios-adhoc.yml`입니다.
+
+**주의:** Ad Hoc IPA에는 등록 기기의 UDID가 들어 있고 이 저장소는 공개이므로, 파일을 받은 누구나 UDID를 볼 수 있습니다. 기기 소유자의 동의를 받고, 프로파일에는 지정한 기기만 넣습니다. 친구 폰에서 개발자 모드를 켜야 할 수 있습니다.
 
 ### GitHub Actions로 업로드(선택)
 

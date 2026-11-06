@@ -1,8 +1,11 @@
 import Foundation
 import Security
 
-struct Selection: Codable, Equatable { let id: String; let name: String; let generation: UUID }
-struct Snapshot: Codable { let selection: Selection; let reading: Reading?; let error: String?; let attemptedAt: Date? }
+struct DeviceState: Codable, Equatable {
+    var reading: Reading?
+    var error: String?
+    var attemptedAt: Date?
+}
 struct ClimateStore {
     // Both targets expand these from the same build settings.
     static let group = Bundle.main.object(forInfoDictionaryKey: "ClimateAppGroup") as! String
@@ -32,22 +35,38 @@ struct ClimateStore {
     // Call while holding StoreLock so an old refresh cannot restore the previous account cache.
     func replaceCredentials(_ config: ThinQConfig) throws {
         try save(config)
-        defaults.removeObject(forKey: "snapshot")
+        clearCache()
     }
-    func snapshot() -> Snapshot? {
-        guard let data = defaults.data(forKey: "snapshot") else { return nil }
-        return try? JSONDecoder().decode(Snapshot.self, from: data)
+    func devices() -> [ThinQDevice] { load("devices") ?? [] }
+    func selectDevices(_ devices: [ThinQDevice]) {
+        store(devices, "devices")
+        let ids = Set(devices.map(\.id))
+        store(states().filter { ids.contains($0.key) }, "states")
     }
-    func write(_ snapshot: Snapshot) {
-        guard let data = try? JSONEncoder().encode(snapshot) else { return }
-        defaults.set(data, forKey: "snapshot")
-    }
-    func select(_ device: ThinQDevice) {
-        write(Snapshot(selection: Selection(id: device.id, name: device.name, generation: UUID()), reading: nil, error: nil, attemptedAt: nil))
+    func catalog() -> [ThinQDevice] { load("catalog") ?? [] }
+    func setCatalog(_ devices: [ThinQDevice]) { store(devices, "catalog") }
+    func states() -> [String: DeviceState] { load("states") ?? [:] }
+    func state(for id: String) -> DeviceState { states()[id] ?? DeviceState() }
+    func write(_ state: DeviceState, for id: String) {
+        var all = states()
+        all[id] = state
+        store(all, "states")
     }
     func clear() throws {
         let status = SecItemDelete(query as CFDictionary)
         guard status == errSecSuccess || status == errSecItemNotFound else { throw ThinQError.settings }
-        defaults.removeObject(forKey: "snapshot")
+        clearCache()
+    }
+    private func clearCache() {
+        // "snapshot" is the single-device format used by earlier builds.
+        for key in ["devices", "catalog", "states", "snapshot"] { defaults.removeObject(forKey: key) }
+    }
+    private func load<T: Decodable>(_ key: String) -> T? {
+        guard let data = defaults.data(forKey: key) else { return nil }
+        return try? JSONDecoder().decode(T.self, from: data)
+    }
+    private func store<T: Encodable>(_ value: T, _ key: String) {
+        guard let data = try? JSONEncoder().encode(value) else { return }
+        defaults.set(data, forKey: key)
     }
 }

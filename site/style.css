@@ -32,6 +32,8 @@ main { max-width: 640px; margin: 0 auto; padding: 40px 16px 56px; }
 header { margin-bottom: 24px; }
 h1 { margin: 0 0 8px; font-size: 2rem; line-height: 1.2; }
 h2 { margin: 0 0 4px; font-size: 1.2rem; }
+h3 { margin: 0 0 4px; font-size: 1rem; }
+.adhoc { margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--line); }
 a { color: var(--accent); }
 code { font-size: .92em; }
 ol, ul { margin: 12px 0; padding-left: 22px; }

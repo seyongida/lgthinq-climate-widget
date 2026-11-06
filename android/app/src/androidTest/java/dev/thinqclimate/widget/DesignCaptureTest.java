@@ -37,6 +37,31 @@ public class DesignCaptureTest {
         if(view instanceof ViewGroup group)for(int i=0;i<group.getChildCount();i++){Button result=button(group.getChildAt(i),text);if(result!=null)return result;}
         return null;
     }
+    /** Seeds sample devices on a build without a token, then captures the redesigned screens. */
+    @Test public void captureSeededScreens() throws Exception {
+        Assume.assumeTrue("seeded".equals(InstrumentationRegistry.getArguments().getString("designCapture")));
+        Context context=instrumentation.getTargetContext();
+        Store store=new Store(context);
+        Assume.assumeTrue(store.config()==null);
+        store.selectDevices(java.util.List.of(new dev.thinqclimate.core.Climate.Device("a","거실 가습기"),new dev.thinqclimate.core.Climate.Device("b","침실 공기청정기","DEVICE_AIR_PURIFIER")));
+        store.reading("a",new dev.thinqclimate.core.Climate.Reading(22.3,43.0,System.currentTimeMillis()));
+        store.reading("b",new dev.thinqclimate.core.Climate.Reading(21.5,47.0,System.currentTimeMillis()));
+        Instrumentation.ActivityMonitor monitor=instrumentation.addMonitor(CredentialsActivity.class.getName(),null,false);
+        Activity main=instrumentation.startActivitySync(new Intent(context,MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+        Activity setup=monitor.waitForActivityWithTimeout(5000);
+        try {
+            if(setup!=null){dump(setup,"redesign-setup");Activity a=setup;instrumentation.runOnMainSync(a::finish);setup=null;}
+            instrumentation.waitForIdleSync();
+            dump(main,"redesign-home");
+            instrumentation.runOnMainSync(()->{ScrollView s=scroll(main.findViewById(android.R.id.content));s.scrollTo(0,s.getChildAt(0).getHeight());});
+            dump(main,"redesign-home-bottom");
+        } finally {
+            instrumentation.removeMonitor(monitor);
+            if(setup!=null){Activity a=setup;instrumentation.runOnMainSync(a::finish);}
+            if(!main.isFinishing())instrumentation.runOnMainSync(main::finish);
+            store.clear();
+        }
+    }
     @Test public void captureOwnScreensWithoutChangingUserPreferences() {
         Assume.assumeTrue("true".equals(InstrumentationRegistry.getArguments().getString("designCapture")));
         Context context=instrumentation.getTargetContext();

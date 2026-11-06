@@ -53,14 +53,60 @@ final class ClimateCoreTests: XCTestCase {
         XCTAssertTrue(r.stale(at: now.addingTimeInterval(5400)))
         XCTAssertTrue(r.stale(at: now.addingTimeInterval(-1)))
     }
-    func testHumidifierFiltering() throws {
+    func testDeviceFilteringMatchesAndroid() throws {
         let list: [[String: Any]] = [
             ["deviceId": "a", "deviceInfo": ["deviceType": "DEVICE_HUMIDIFIER", "alias": "거실"]],
             ["deviceId": "b", "deviceInfo": ["deviceType": "DEVICE_DEHUMIDIFIER"]],
-            ["deviceId": "c", "deviceInfo": ["deviceType": "DEVICE_HUMIDIFIER"]],
+            ["deviceId": "c", "deviceInfo": ["deviceType": "DEVICE_HUMIDIFIER", "alias": "  "]],
+            ["deviceId": "d", "deviceInfo": ["deviceType": "DEVICE_AIR_PURIFIER"]],
+            ["deviceId": "e", "deviceInfo": ["deviceType": "DEVICE_AIR_PURIFIER_FAN", "alias": "안방"]],
+            ["deviceId": "a", "deviceInfo": ["deviceType": "DEVICE_HUMIDIFIER", "alias": "중복"]],
             ["deviceInfo": ["deviceType": "DEVICE_HUMIDIFIER"]]]
-        XCTAssertEqual(try ThinQDevice.parse(list), [ThinQDevice(id: "a", name: "거실"), ThinQDevice(id: "c", name: "가습기")])
+        let devices = try ThinQDevice.parse(list)
+        XCTAssertEqual(devices, [ThinQDevice(id: "a", name: "거실"), ThinQDevice(id: "c", name: "가습기"),
+                                 ThinQDevice(id: "d", name: "공기청정기", type: "DEVICE_AIR_PURIFIER"),
+                                 ThinQDevice(id: "e", name: "안방", type: "DEVICE_AIR_PURIFIER_FAN")])
+        XCTAssertEqual(devices.map(\.typeName), ["가습기", "가습기", "공기청정기", "공기청정 팬"])
         XCTAssertThrowsError(try ThinQDevice.parse([:]))
+    }
+    func testCompactFormatMatchesAndroidWidget() {
+        XCTAssertEqual(Reading.compact(24.5, unit: "°"), "24.5°")
+        XCTAssertEqual(Reading.compact(47, unit: "%"), "47%")
+        XCTAssertEqual(Reading.compact(nil, unit: "%"), "—")
+    }
+    func testComfortBoundaries() {
+        XCTAssertEqual(Comfort(humidity: nil), .unknown)
+        XCTAssertEqual(Comfort(humidity: 39.9), .dry)
+        XCTAssertEqual(Comfort(humidity: 40), .good)
+        XCTAssertEqual(Comfort(humidity: 60), .good)
+        XCTAssertEqual(Comfort(humidity: 60.1), .humid)
+        XCTAssertNil(Comfort.average([nil, nil]))
+        XCTAssertEqual(Comfort.average([40, nil, 60]), 50)
+    }
+    func testColorParsingAndContrast() {
+        XCTAssertEqual(RGB(hex: "#FAF8F2"), RGB(250, 248, 242))
+        XCTAssertEqual(RGB(hex: " 2f6c53 "), RGB(47, 108, 83))
+        for bad in ["", "#FFF", "GGGGGG", "#1234567", "+12345"] { XCTAssertNil(RGB(hex: bad), bad) }
+        XCTAssertEqual(RGB(0, 0, 0).contrast(with: RGB(255, 255, 255)), 21, accuracy: 0.001)
+    }
+    func testEveryPresetIsLegible() {
+        XCTAssertEqual(WidgetStyle.names.count, WidgetStyle.presets.count)
+        for style in WidgetStyle.presets {
+            XCTAssertGreaterThanOrEqual(style.background.contrast(with: style.foreground), 4.5)
+            XCTAssertGreaterThanOrEqual(style.background.contrast(with: style.muted), 4.5)
+            XCTAssertGreaterThanOrEqual(style.background.contrast(with: style.accent), 3)
+            XCTAssertGreaterThanOrEqual(style.background.contrast(with: style.warning), 3)
+        }
+    }
+    func testStyleResolutionFallsBackToLegibleColors() {
+        XCTAssertEqual(WidgetStyle.resolve(preset: 3, customBackground: nil, customAccent: nil, opacity: 100), WidgetStyle.presets[3])
+        XCTAssertEqual(WidgetStyle.resolve(preset: 99, customBackground: "bad", customAccent: "bad", opacity: 100), WidgetStyle.presets[5])
+        XCTAssertEqual(WidgetStyle.resolve(preset: 0, customBackground: nil, customAccent: nil, opacity: 5).opacity, 40)
+        XCTAssertEqual(WidgetStyle.resolve(preset: 0, customBackground: nil, customAccent: nil, opacity: 500).opacity, 100)
+        let custom = WidgetStyle.resolve(preset: 0, customBackground: "#112233", customAccent: "#FFEEDD", opacity: 80)
+        XCTAssertEqual(custom, WidgetStyle(background: RGB(17, 34, 51), accent: RGB(255, 238, 221), opacity: 80))
+        let clash = WidgetStyle.resolve(preset: 0, customBackground: "#FFFFFF", customAccent: "#FFFFFE", opacity: 100)
+        XCTAssertEqual(clash.accent, clash.foreground)
     }
     func testEnvelopeAndErrors() throws {
         func decode(_ text: String, _ status: Int = 200) throws -> Any { try ThinQClient.unwrap(Data(text.utf8), status: status) }

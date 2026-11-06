@@ -6,6 +6,12 @@ public final class CoreTest {
     static void invalid(Runnable action) { try {action.run();throw new AssertionError("accepted invalid input");}catch(IllegalArgumentException expected) {checks++;} }
     public static void main(String[] args) {
         var c = new Climate.Config(" test-pat "," kr ","kic","climate-test");
+        check(Climate.Comfort.of(null)==Climate.Comfort.UNKNOWN,"comfort unknown");
+        check(Climate.Comfort.of(39.9)==Climate.Comfort.DRY,"comfort dry");
+        check(Climate.Comfort.of(40.0)==Climate.Comfort.GOOD&&Climate.Comfort.of(60.0)==Climate.Comfort.GOOD,"comfort bounds");
+        check(Climate.Comfort.of(60.1)==Climate.Comfort.HUMID,"comfort humid");
+        check(Climate.average(Arrays.asList(null,null))==null,"average of nothing");
+        check(Climate.average(Arrays.asList(40.0,null,60.0))==50,"average skips missing values");
         check(c.country().equals("KR"),"country normalization");
         check(c.endpoint(null).toString().equals("https://api-kic.lgthinq.com/devices"),"list URL");
         check(c.endpoint("a/b ?#").toString().endsWith("a%2Fb%20%3F%23/state"),"ID encoding");
