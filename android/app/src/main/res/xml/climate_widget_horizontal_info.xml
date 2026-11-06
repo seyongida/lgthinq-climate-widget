@@ -1,0 +1,7 @@
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+ android:minWidth="110dp" android:minHeight="40dp" android:minResizeWidth="40dp" android:minResizeHeight="40dp"
+ android:targetCellWidth="2" android:targetCellHeight="1" android:updatePeriodMillis="0"
+ android:initialLayout="@layout/climate_widget_pair_horizontal" android:previewLayout="@layout/climate_widget_horizontal_preview"
+ android:resizeMode="horizontal|vertical" android:widgetCategory="home_screen"
+ android:configure="dev.thinqclimate.widget.WidgetConfigActivity" android:widgetFeatures="reconfigurable|configuration_optional"
+ android:description="@string/widget_horizontal_description"/>

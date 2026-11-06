@@ -12,10 +12,11 @@ import WidgetKit
     @Published var message = "ThinQ와 같은 LG 계정의 PAT로 연결하세요."
     @Published var busy = false
     @Published var snapshot: Snapshot?
+    @Published var hasCredentials = false
     private var pending: ThinQConfig?
     init() {
         snapshot = ClimateStore().snapshot()
-        do { if let c = try ClimateStore().config() { country = c.country; region = c.region } }
+        do { if let c = try ClimateStore().config() { country = c.country; region = c.region; hasCredentials = true; message = "저장된 계정으로 연결되어 있습니다. 아래에서 토큰을 교체할 수 있습니다." } }
         catch { message = "저장된 인증을 읽을 수 없습니다. 다시 연결해 주세요." }
     }
     func discover() async {
@@ -24,8 +25,13 @@ import WidgetKit
         do {
             let old = try ClimateStore().config()
             let c = try ThinQConfig(token: token.isEmpty ? old?.token ?? "" : token, country: country, region: region, clientID: old?.clientID ?? "climate-" + UUID().uuidString)
-            devices = try await ThinQClient(config: c).devices(); pending = c
-            message = devices.isEmpty ? "지원되는 가습기가 없습니다. PAT 읽기 권한과 ThinQ 등록 계정을 확인해 주세요." : "위젯에 표시할 가습기를 선택하세요."
+            let found = try await ThinQClient(config: c).devices()
+            guard let lock = StoreLock() else { message = "갱신 중입니다. 잠시 후 다시 시도해 주세요."; return }
+            defer { withExtendedLifetime(lock) {} }
+            try ClimateStore().replaceCredentials(c)
+            devices = found; pending = c; token = ""; hasCredentials = true; snapshot = nil
+            WidgetCenter.shared.reloadAllTimelines()
+            message = devices.isEmpty ? "토큰을 저장했습니다. 지원되는 가습기가 없습니다. 계정과 기기 권한을 확인해 주세요." : "토큰을 저장했습니다. 위젯에 표시할 가습기를 선택하세요."
         } catch { message = (error as? ThinQError ?? .network).localizedDescription }
     }
     func select(_ device: ThinQDevice) async {
@@ -47,7 +53,7 @@ import WidgetKit
     func disconnect() {
         guard !busy, let lock = StoreLock() else { message = "갱신 중입니다. 잠시 후 다시 시도해 주세요."; return }
         defer { withExtendedLifetime(lock) {} }
-        do { try ClimateStore().clear(); snapshot = nil; devices = []; pending = nil; token = ""; message = "인증과 센서 데이터를 삭제했습니다."; WidgetCenter.shared.reloadAllTimelines() }
+        do { try ClimateStore().clear(); hasCredentials = false; snapshot = nil; devices = []; pending = nil; token = ""; message = "인증과 센서 데이터를 삭제했습니다."; WidgetCenter.shared.reloadAllTimelines() }
         catch { message = "인증 삭제 실패 · 잠금 해제 후 다시 시도해 주세요." }
     }
 }
@@ -74,15 +80,15 @@ struct SetupView: View {
                         Button("지금 새로고침") { Task { await model.refresh() } }.disabled(model.busy)
                     }
                 }
-                Section("1 · LG 계정 연결") {
+                Section(model.hasCredentials ? "연결 설정 · 토큰 교체" : "1 · LG 계정 연결") {
                     Link("LG에서 Personal Access Token 발급", destination: URL(string: "https://connect-pat.lgthinq.com")!)
                     Text("ThinQ에 등록한 계정으로 로그인하고 기기 목록·상태 읽기 권한을 허용하세요. PAT는 기기의 Keychain에 저장됩니다.").font(.footnote)
-                    SecureField("PAT (저장된 인증을 쓰려면 비워 두세요)", text: $model.token).textContentType(.password).autocorrectionDisabled().textInputAutocapitalization(.never)
+                    SecureField(model.hasCredentials ? "새 PAT (유지하려면 비워 두세요)" : "발급받은 Personal Access Token", text: $model.token).textContentType(.password).autocorrectionDisabled().textInputAutocapitalization(.never)
                     TextField("계정 국가 코드", text: $model.country).textInputAutocapitalization(.characters).autocorrectionDisabled()
                     Picker("계정 서버 지역", selection: $model.region) {
                         Text("한국/아시아 (kic)").tag("kic"); Text("미주 (aic)").tag("aic"); Text("유럽/기타 (eic)").tag("eic")
                     }
-                    Button("연결하고 가습기 찾기") { Task { await model.discover() } }.disabled(model.busy)
+                    Button(model.hasCredentials ? "토큰 확인 후 저장 · 기기 찾기" : "연결하고 가습기 찾기") { Task { await model.discover() } }.disabled(model.busy)
                 }
                 if !model.devices.isEmpty {
                     Section("2 · 가습기 선택") { ForEach(model.devices) { device in Button(device.name) { Task { await model.select(device) } }.disabled(model.busy) } }

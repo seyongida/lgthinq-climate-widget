@@ -1,0 +1,6 @@
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:layout_width="match_parent" android:layout_height="match_parent"
+ android:orientation="vertical" android:gravity="center_horizontal" android:background="@drawable/widget_background" android:padding="8dp">
+ <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/preview_room" android:textColor="#637168" android:textSize="10sp" android:gravity="center" android:maxLines="1" android:includeFontPadding="false"/>
+ <TextView android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" android:text="@string/preview_temperature" android:textColor="#222F2A" android:textSize="23sp" android:gravity="center" android:includeFontPadding="false"/>
+ <TextView android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" android:text="@string/preview_humidity" android:textColor="#2F6C53" android:textSize="22sp" android:gravity="center" android:includeFontPadding="false"/>
+</LinearLayout>

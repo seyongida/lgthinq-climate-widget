@@ -1,77 +1,73 @@
 # ThinQ Climate
 
-LG ThinQ에 등록된 **가습기의 현재 온도·습도**를 iPhone과 Android 홈 화면에서 확인하는 네이티브 앱입니다. 별도 서버나 구독 없이 공식 ThinQ Connect API를 읽기 전용으로 사용합니다. 한국어 설정 화면, 기기 선택, 마지막 수신 시각, 오래된 데이터 표시, 오류 안내를 제공합니다.
+LG ThinQ 기기의 현재 온도·습도를 휴대폰과 홈 화면 위젯에서 확인합니다. 별도 앱 서버나 구독 없이 공식 ThinQ Connect API를 읽기 전용으로 사용합니다. LG Electronics의 공식 앱이 아닙니다.
 
-- **iOS 17+**: SwiftUI 앱 + WidgetKit 작은/중간 위젯. App Group 캐시와 공유 Keychain.
-- **Android 8+ (API 26)**: 네이티브 앱 + 크기 조절 가능한 RemoteViews 위젯. WorkManager 갱신과 Android Keystore 암호화.
-- 여러 가습기를 검색하고 하나를 선택합니다. 현재 버전의 모든 위젯은 같은 선택 기기를 표시합니다.
-- LG 비밀번호를 받지 않습니다. PAT는 폰에만 저장하며 로그·위젯·저장소에 출력하지 않습니다.
+## 설치하기
 
-## 시작하기
+**[Android APK 다운로드](https://github.com/seyongida/lgthinq-climate-widget/releases/latest/download/ThinQ-Climate.apk)** · [릴리즈와 체크섬](https://github.com/seyongida/lgthinq-climate-widget/releases/latest)
 
-1. LG ThinQ 앱에 가습기가 등록되어 있는지 확인합니다.
-2. [LG PAT 발급 페이지](https://connect-pat.lgthinq.com)에서 **같은 LG 계정**으로 로그인합니다. 기기 목록과 상태 조회에 필요한 읽기 권한을 허용합니다. PAT를 이슈나 채팅에 올리지 마세요.
-3. 앱에 PAT, LG 계정 국가 코드(한국 `KR`), 서버 지역(한국 `kic`)을 입력합니다. 미주 계정은 `aic`, 유럽/기타는 `eic`를 선택합니다. 앱 언어나 현재 위치가 아니라 **LG 계정 지역**을 사용합니다.
-4. **연결하고 가습기 찾기** → 가습기 선택 → 새로고침으로 수신값을 확인합니다.
-5. 홈 화면을 길게 누르고 위젯 목록에서 **ThinQ Climate**를 추가합니다.
+- Android 8 이상: APK를 다운로드하고, Android 안내에 따라 해당 브라우저의 앱 설치를 허용합니다.
+- iPhone/iPad: **TestFlight 배포 준비 중**입니다. Apple 서명과 App Store Connect 설정 후 릴리즈 페이지에 실제 초대 링크를 안내합니다. 시뮬레이터 ZIP이나 서명되지 않은 IPA는 iPhone 설치 파일이 아닙니다.
 
-가습기가 ThinQ에 보이더라도 공식 API 지원 여부와 센서 공개 범위는 모델·펌웨어·계정 지역에 따라 다릅니다. 제공되지 않는 값은 `—`입니다. **목표 습도를 현재 습도로 대신 표시하지 않습니다.** 실제 사용자 가습기와의 연동 검증에는 사용자 기기에서 PAT를 설정해야 합니다.
+처음 실행하면 **본인의 LG ThinQ Personal Access Token(PAT)**을 입력합니다. 공개 APK에는 개발자의 토큰이 포함되지 않습니다.
 
-## 갱신 방식
+1. [LG PAT 발급 페이지](https://connect-pat.lgthinq.com)에서 ThinQ와 같은 계정으로 기기 목록·상태 읽기 권한을 발급합니다.
+2. 앱에 PAT, LG 계정 국가 코드(한국 `KR`), 계정 서버 지역(한국 `kic`, 미주 `aic`, 유럽/기타 `eic`)을 입력합니다.
+3. 연결 확인이 끝나면 기기를 선택하고 현재 센서값을 확인합니다.
+4. **연결 설정**에서 언제든 새 PAT로 교체합니다. 기존 토큰은 화면에 표시하지 않습니다. 새 토큰의 연결 확인이 실패하면 기존 연결을 유지합니다. 성공하면 이전 계정의 센서 캐시를 지웁니다.
 
-30분마다 갱신을 요청합니다. iOS WidgetKit과 Android 절전 정책이 실제 실행 시점을 결정하므로 실시간 표시나 정확한 30분 갱신을 보장하지 않습니다. 수동 요청은 1분 이내 중복 요청을 제한합니다. 네트워크 실패 시 마지막 성공값과 오류를 함께 표시하고, 90분 이상 지난 값에는 오래된 데이터 표시가 붙습니다. 위젯 시각은 **앱이 서버 응답을 받은 시각**이며 센서 자체의 측정 시각은 아닙니다.
+PAT를 채팅이나 이슈에 올리지 마세요. 서버 측 토큰 폐기는 LG 발급 페이지에서 수행합니다. 센서 공개 범위는 모델·펌웨어·계정 지역에 따라 다르며 미지원 값은 `—`입니다. 목표 습도를 현재 습도로 대신 표시하지 않습니다.
 
-기기를 바꾸면 이전 센서 캐시를 지웁니다. Android는 세대 식별자로 이전 요청의 늦은 결과를 버리고, iOS는 앱과 확장 사이 파일 잠금으로 변경과 갱신을 직렬화합니다. 연결 해제는 인증과 캐시를 삭제합니다. LG 쪽 PAT 자체를 폐기하려면 PAT 발급 페이지에서도 취소하세요.
+## 기기와 위젯
 
-## 빌드와 설치
+- Android: 가습기·공기청정기·공기청정 팬을 여러 대 선택합니다. 위젯마다 다른 기기를 지정할 수 있습니다.
+- **1×1**은 첫 번째 기기, **1×2 / 2×1**은 최대 두 기기를 표시합니다. 앱의 **홈 화면 위젯** 선택 카드나 런처 위젯 목록에서 추가하세요.
+- 위젯 본문을 누르면 기기와 색상을 바꿉니다. 6가지 프리셋, 배경/습도 강조색의 `#RRGGBB` 입력, 배경 불투명도(40~100%)와 실제 미리보기를 지원합니다. **이 위젯에 적용**을 눌러야 저장합니다.
+- 아래 수신 시각/↻를 누르면 새로고침합니다. 작은 크기는 시각을 생략할 수 있습니다. 크기를 줄였다 늘려도 두 번째 기기와 색상 설정은 유지합니다.
+- iOS 17 이상: 가습기 한 대와 WidgetKit 작은/중간 위젯을 지원합니다. Android의 다중 기기/색상 설정은 iOS에 아직 적용하지 않았습니다.
 
-### Android
+기존의 큰 위젯 크기는 런처에 남을 수 있습니다. 1×1을 새로 추가하거나 크기를 줄이세요. 실제 셀 크기는 홈 화면 격자와 런처 설정에 따릅니다.
 
-JDK 17과 Android SDK 35가 필요합니다. Android Studio에서 `android/`를 열거나 다음 명령을 실행하세요. 포함된 Gradle Wrapper가 **Gradle 8.9**를 내려받고 SHA-256을 검증합니다.
+30분마다 갱신을 요청하며 절전/네트워크 상태에 따라 실행이 지연될 수 있습니다. 수동 요청은 기기별 최소 1분 간격입니다. 실패 시 마지막 성공값과 오류를 함께 표시하고, 90분 이상 지난 값은 오래됨으로 구분합니다. 시각은 앱이 서버 응답을 받은 시각입니다.
+
+## 공개 Release / 개인 Dev 빌드
+
+| 항목 | 공개 Release | 개인 Debug/Dev |
+|---|---|---|
+| Android 앱 ID | `dev.thinqclimate.widget.release` | `dev.thinqclimate.widget` |
+| 앱 이름 | ThinQ Climate | ThinQ Climate Dev |
+| `.env` PAT | **항상 제외** | 선택적으로 내장 |
+| 최초 연결 | 사용자 PAT 입력 | 내장 PAT가 있으면 자동 연결, 없으면 입력 |
+| 토큰 교체 | 연결 설정에서 가능 | 연결 설정에서 가능 |
+| 배포 | 서명된 APK를 GitHub Releases에 공개 | 로컬 개인 설치 또는 토큰 없는 CI 검사 |
+
+두 Android 앱은 함께 설치할 수 있으며 데이터와 위젯 설정은 분리됩니다. 이전 개인 디버그 앱의 서명/설정을 보존하기 위해 Dev 앱 ID를 유지했습니다. iOS는 두 빌드 모두 사용자 PAT를 직접 입력하며 `.env`를 읽지 않습니다.
+
+## 개발과 검증
+
+JDK 17, Android SDK 35, 포함된 Gradle 8.9 Wrapper를 사용합니다.
 
 ```sh
 cd android
-./gradlew :core:check :app:testDebugUnitTest :app:lintDebug :app:assembleDebug
-# USB 디버깅을 켠 Android 또는 에뮬레이터
-adb install -r app/build/outputs/apk/debug/app-debug.apk
-./gradlew :app:connectedDebugAndroidTest
+./gradlew :core:check :app:testDebugUnitTest :app:testReleaseUnitTest :app:lintDebug :app:lintRelease :app:assembleDebug :app:assembleRelease
 ```
 
-CI가 성공하면 Actions의 `android-debug-apk` 아티팩트에서 설치용 디버그 APK를 받을 수 있습니다. 배포용 서명 키는 포함하지 않았습니다.
+개인 자동 연결이 필요할 때만 루트 `.env.example`을 `.env`로 복사하고 `THINQ_PAT`, `THINQ_COUNTRY`, `THINQ_REGION`을 넣습니다. 환경 변수가 파일보다 우선합니다. **실제 토큰을 내장한 Dev APK/테스트 APK는 공유하지 마세요.**
 
-### iPhone
-
-macOS, Xcode 16+, XcodeGen이 필요합니다.
+서명 키가 없으면 Release 빌드는 설치할 수 없는 unsigned APK를 만듭니다. 서명과 공개 방법은 [배포 운영 안내](docs/DISTRIBUTION.md)를 참고하세요. 공개 전에는 다음 검사를 수행합니다.
 
 ```sh
-brew install xcodegen
+python3 scripts/verify-release.py android/app/build/outputs/apk/release/app-release.apk --version v1.3.0
+```
+
+Apple 개발 환경:
+
+```sh
 swift test --package-path ios
-cd ios
-xcodegen generate
-open ThinQClimate.xcodeproj
+xcodegen generate --spec ios/project.yml
+open ios/ThinQClimate.xcodeproj
 ```
 
-실기기에서는 두 타깃의 Signing Team을 본인 Apple 개발자 계정으로 지정하고 고유한 Bundle ID를 사용하세요. 프로젝트 설정 `CLIMATE_APP_GROUP`을 본인 계정에 등록한 App Group으로 바꿉니다. **앱과 확장 양쪽에 같은 App Group 및 Keychain Sharing 권한**이 필요합니다. `CLIMATE_KEYCHAIN_GROUP`은 `$(AppIdentifierPrefix)` 접두어를 유지하세요. 생성된 entitlements와 Info.plist는 `ios/project.yml`에서 관리합니다. Signing 설정 후 iPhone을 선택하여 실행합니다.
+실기기 빌드는 Apple Team, 고유 Bundle ID, App Group과 두 타깃의 Keychain 공유 권한이 필요합니다. [Mobile CI](https://github.com/seyongida/lgthinq-climate-widget/actions/workflows/ci.yml)는 Android 코어/HTTP 계약·두 빌드 유형·lint·에뮬레이터 계측 검사와 Swift 테스트·iOS 시뮬레이터 빌드를 수행합니다. [릴리즈 워크플로](https://github.com/seyongida/lgthinq-climate-widget/actions/workflows/release.yml)는 `v*` 태그에서 공개 APK를 만듭니다.
 
-CI의 iOS 아티팩트는 **시뮬레이터용 앱**입니다. 실기기 설치용 IPA는 Apple 서명과 프로비저닝이 필요합니다. 이 저장소는 앱스토어 등록·TestFlight 배포를 자동 수행하지 않습니다.
-
-## 검증
-
-```sh
-bash scripts/test-core.sh
-```
-
-외부 의존성 없이 Android 코어의 센서 경계값, 자료형, 기기 필터, 요청 헤더·URL·메시지 ID, 오류 분류, 데이터 유효기간을 검사합니다. 앱 단위 테스트는 실제 HTTP 어댑터에 모의 연결을 주입해 JSON, 리소스 정리, 타임아웃, 인증·한도·오프라인 오류와 리다이렉트 차단을 검사합니다. Android 계측 테스트는 실제 Keystore 저장/복호화, 인증 삭제, 기기 변경 캐시 초기화를 확인합니다. Swift 테스트는 동일한 API 계약과 센서·오류·캐시 직렬화를 검사합니다.
-
-[Mobile CI](https://github.com/seyongida/lgthinq-climate-widget/actions/workflows/ci.yml)는 Android 빌드·lint·단위 테스트·에뮬레이터 계측 테스트, Swift 테스트, iOS 앱과 WidgetKit 확장 빌드를 수행합니다. **통과 여부는 실제 Actions 실행 결과를 확인하세요.** 구현 당시 로컬 검증 범위와 미검증 항목은 [검증 기록](docs/VALIDATION.md)에 구분해 적었습니다. 실기기 위젯·절전·PAT 연동의 최종 확인은 [수동 점검표](docs/DEVICE_TESTING.md)를 따릅니다.
-
-## 구조와 자료
-
-- `android/core`: 외부 의존성 없는 API 계약과 센서 모델
-- `android/app`: HTTP, 암호화 저장, 설정 화면, WorkManager, 위젯
-- `ios/Shared/Core`: Swift Package로도 테스트하는 API 계약과 센서 모델
-- `ios/Shared/Runtime`: 공유 Keychain·캐시와 프로세스 간 갱신 잠금
-- `ios/App`, `ios/Widget`: 설정 앱과 WidgetKit 위젯
-- [API 근거와 설계 결정](docs/ARCHITECTURE.md), [보안 안내](SECURITY.md)
-
-LG 공식 SDK의 가습기 매핑을 근거로 `airQualitySensor.temperature`(°C), `airQualitySensor.humidity`(%)를 읽습니다. 비공식 ThinQ 로그인 역공학 API는 사용하지 않습니다. LG Electronics의 공식 앱이 아니며 LG ThinQ는 해당 소유자의 상표입니다.
+자료: [배포 운영](docs/DISTRIBUTION.md) · [설계와 API 근거](docs/ARCHITECTURE.md) · [보안](SECURITY.md) · [검증 기록](docs/VALIDATION.md) · [실기기 점검표](docs/DEVICE_TESTING.md)

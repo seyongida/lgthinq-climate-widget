@@ -5,7 +5,7 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 
-/** Platform-independent contract. Only current humidifier sensors are accepted. */
+/** Platform-independent contract for current indoor climate sensors. */
 public final class Climate {
     private Climate() {}
     public static final long STALE_MS = 90 * 60_000L;
@@ -30,7 +30,16 @@ public final class Climate {
             return URI.create("https://api-" + region + ".lgthinq.com/" + path);
         }
     }
-    public record Device(String id, String name) {}
+    public record Device(String id, String name, String type) {
+        public Device(String id, String name) { this(id, name, "DEVICE_HUMIDIFIER"); }
+        public String typeName() {
+            return switch (type) {
+                case "DEVICE_AIR_PURIFIER" -> "공기청정기";
+                case "DEVICE_AIR_PURIFIER_FAN" -> "공기청정 팬";
+                default -> "가습기";
+            };
+        }
+    }
     public record Reading(Double temperature, Double humidity, long fetchedAt) {
         public boolean stale(long now) { return now < fetchedAt || now - fetchedAt >= STALE_MS; }
         public String temperatureText() { return value(temperature, "°C"); }
@@ -57,17 +66,20 @@ public final class Climate {
             if (!(item instanceof Map<?,?> m)) continue;
             Object infoRaw = m.get("deviceInfo");
             Map<?,?> info = infoRaw instanceof Map<?,?> i ? i : Map.of();
-            if (!"DEVICE_HUMIDIFIER".equals(info.get("deviceType"))) continue;
+            String type = String.valueOf(info.get("deviceType"));
+            if (!Set.of("DEVICE_HUMIDIFIER", "DEVICE_AIR_PURIFIER", "DEVICE_AIR_PURIFIER_FAN").contains(type)) continue;
             if (!(m.get("deviceId") instanceof String id) || id.isBlank()) continue;
             Object alias = info.get("alias");
-            result.add(new Device(id, alias instanceof String s && !s.isBlank() ? s : "가습기"));
+            String fallback = type.equals("DEVICE_HUMIDIFIER") ? "가습기" : "공기청정기";
+            if (result.stream().noneMatch(d -> d.id().equals(id)))
+                result.add(new Device(id, alias instanceof String s && !s.isBlank() ? s : fallback, type));
         }
         return List.copyOf(result);
     }
     public static String error(int status, String code) {
-        if (status == 401 || Set.of("1103", "1218", "1302").contains(code)) return "인증 만료 · 앱에서 PAT를 다시 설정해 주세요.";
+        if (status == 401 || Set.of("1103", "1218", "1302").contains(code)) return "인증 만료 · 연결 설정을 갱신해 주세요.";
         if (status == 429 || "1306".equals(code)) return "요청 한도 초과 · 잠시 후 다시 시도합니다.";
-        if ("1222".equals(code)) return "가습기 오프라인 · 마지막 수신값입니다.";
+        if ("1222".equals(code)) return "기기 오프라인 · 마지막 수신값입니다.";
         if (status == 403) return "접근 거부 · PAT 읽기 권한과 국가/지역을 확인해 주세요.";
         return "연결 실패 · 네트워크와 기기 상태를 확인해 주세요.";
     }

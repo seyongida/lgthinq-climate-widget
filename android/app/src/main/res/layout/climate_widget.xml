@@ -1,15 +1,19 @@
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:id="@+id/widget_root" android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical" android:background="@drawable/widget_background">
- <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center_vertical">
-  <TextView android:id="@+id/device_name" android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:textColor="#DAEEE9" android:textSize="14sp" android:maxLines="1" android:ellipsize="end"/>
-  <Button android:id="@+id/refresh" android:layout_width="wrap_content" android:layout_height="48dp" android:text="@string/refresh" android:textSize="12sp" android:contentDescription="@string/refresh"/>
- </LinearLayout>
- <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal">
-  <TextView android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:text="온도" android:textColor="#BAD2CF" android:textSize="12sp"/>
-  <TextView android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:text="습도" android:textColor="#BAD2CF" android:textSize="12sp"/>
- </LinearLayout>
- <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal">
-  <TextView android:id="@+id/temperature" android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:text="—" android:textColor="#FFFFFF" android:textSize="28sp" android:autoSizeTextType="uniform" android:autoSizeMinTextSize="18sp" android:autoSizeMaxTextSize="28sp" android:autoSizeStepGranularity="1sp" android:maxLines="1"/>
-  <TextView android:id="@+id/humidity" android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:text="—" android:textColor="#83E5CF" android:textSize="28sp" android:autoSizeTextType="uniform" android:autoSizeMinTextSize="18sp" android:autoSizeMaxTextSize="28sp" android:autoSizeStepGranularity="1sp" android:maxLines="1"/>
- </LinearLayout>
- <TextView android:id="@+id/status" android:layout_width="match_parent" android:layout_height="wrap_content" android:textColor="#BAD2CF" android:textSize="11sp" android:maxLines="3"/>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+ android:id="@+id/widget_root" android:layout_width="match_parent" android:layout_height="match_parent"
+ android:layout_weight="1" android:orientation="vertical" android:paddingHorizontal="10dp" android:paddingVertical="7dp"
+ android:gravity="center_horizontal" android:background="@drawable/widget_background">
+ <TextView android:id="@+id/device_name" android:layout_width="match_parent" android:layout_height="wrap_content"
+  android:text="@string/app_name" android:textColor="#637168" android:textSize="10sp" android:fontFamily="sans-serif-medium"
+  android:gravity="center" android:maxLines="1" android:ellipsize="end" android:includeFontPadding="false"/>
+ <TextView android:id="@+id/temperature" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1"
+  android:text="—" android:textColor="#222F2A" android:textSize="24sp" android:fontFamily="sans-serif-medium"
+  android:autoSizeTextType="uniform" android:autoSizeMinTextSize="10sp" android:autoSizeMaxTextSize="27sp" android:autoSizeStepGranularity="1sp"
+  android:gravity="center" android:includeFontPadding="false" android:maxLines="1"/>
+ <TextView android:id="@+id/humidity" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1"
+  android:text="—" android:textColor="#2F6C53" android:textSize="22sp" android:fontFamily="sans-serif-medium"
+  android:autoSizeTextType="uniform" android:autoSizeMinTextSize="10sp" android:autoSizeMaxTextSize="25sp" android:autoSizeStepGranularity="1sp"
+  android:gravity="center" android:includeFontPadding="false" android:maxLines="1"/>
+ <TextView android:id="@+id/status" android:layout_width="match_parent" android:layout_height="wrap_content"
+  android:text="@string/widget_setup" android:textColor="#637168" android:textSize="9sp" android:gravity="center"
+  android:maxLines="1" android:ellipsize="end" android:includeFontPadding="false" android:contentDescription="@string/refresh"/>
 </LinearLayout>

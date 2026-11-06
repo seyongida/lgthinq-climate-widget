@@ -1,1 +1,14 @@
-<resources><string name="widget_description">가습기 온도와 습도 · 마지막 수신 시각</string><string name="refresh">새로고침</string></resources>
+<resources>
+ <string name="app_name">ThinQ Climate</string>
+ <string name="widget_name">Climate · 1 × 1</string>
+ <string name="widget_pair_name">Climate · 1 × 2</string>
+ <string name="widget_horizontal_name">Climate · 2 × 1</string>
+ <string name="widget_horizontal_description">기기 2대의 온도·습도를 가로로 표시. 위젯마다 다른 기기 선택.</string>
+ <string name="widget_description">기기 1대의 온도·습도. 크기를 늘리면 2대 표시.</string>
+ <string name="widget_pair_description">기기 2대의 온도·습도. 위젯마다 다른 기기 선택.</string>
+ <string name="refresh">센서값 새로고침</string>
+ <string name="widget_setup">눌러서 설정</string>
+ <string name="preview_room">거실</string>
+ <string name="preview_temperature">24°</string>
+ <string name="preview_humidity">47%</string>
+</resources>

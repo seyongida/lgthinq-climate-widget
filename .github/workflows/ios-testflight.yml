@@ -1,0 +1,43 @@
+name: Upload iOS to TestFlight
+on:
+  workflow_dispatch:
+    inputs:
+      build_number:
+        description: 'Unique, increasing App Store Connect build number'
+        required: true
+        default: '5'
+  workflow_call:
+    inputs:
+      build_number:
+        type: string
+        required: true
+permissions:
+  contents: read
+concurrency:
+  group: ios-testflight
+  cancel-in-progress: false
+jobs:
+  upload:
+    runs-on: macos-15
+    env:
+      IOS_TEAM_ID: ${{ vars.IOS_TEAM_ID }}
+      IOS_BUNDLE_ID: ${{ vars.IOS_BUNDLE_ID || 'dev.thinqclimate.widget' }}
+      IOS_APP_GROUP: ${{ vars.IOS_APP_GROUP || 'group.dev.thinqclimate.widget' }}
+      IOS_BUILD_NUMBER: ${{ inputs.build_number }}
+      IOS_DISTRIBUTION_P12_BASE64: ${{ secrets.IOS_DISTRIBUTION_P12_BASE64 }}
+      IOS_DISTRIBUTION_P12_PASSWORD: ${{ secrets.IOS_DISTRIBUTION_P12_PASSWORD }}
+      IOS_APP_PROFILE_BASE64: ${{ secrets.IOS_APP_PROFILE_BASE64 }}
+      IOS_WIDGET_PROFILE_BASE64: ${{ secrets.IOS_WIDGET_PROFILE_BASE64 }}
+      ASC_API_KEY_P8_BASE64: ${{ secrets.ASC_API_KEY_P8_BASE64 }}
+      ASC_API_KEY_ID: ${{ secrets.ASC_API_KEY_ID }}
+      ASC_API_ISSUER_ID: ${{ secrets.ASC_API_ISSUER_ID }}
+    steps:
+      - uses: actions/checkout@v5
+      - name: Validate Apple signing configuration
+        run: python3 scripts/ios-signing.py --check
+      - name: Install XcodeGen
+        run: brew install xcodegen
+      - name: Test Swift core
+        run: swift test --package-path ios
+      - name: Archive and upload to App Store Connect
+        run: bash scripts/upload-testflight.sh

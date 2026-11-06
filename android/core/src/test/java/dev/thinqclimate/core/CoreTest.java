@@ -30,6 +30,15 @@ public final class CoreTest {
         check(Climate.sensor(-50,-50,80)==-50 && Climate.sensor(80,-50,80)==80,"temperature bounds");
         var devices=Climate.devices(List.of(Map.of("deviceId","a","deviceInfo",Map.of("deviceType","DEVICE_HUMIDIFIER","alias","거실")),Map.of("deviceId","b","deviceInfo",Map.of("deviceType","DEVICE_DEHUMIDIFIER")),Map.of("deviceId","c","deviceInfo",Map.of("deviceType","DEVICE_HUMIDIFIER")),Map.of("deviceInfo",Map.of("deviceType","DEVICE_HUMIDIFIER"))));
         check(devices.size()==2 && devices.get(0).name().equals("거실") && devices.get(1).name().equals("가습기"),"humidifier filter and alias");
+        var mixed=Climate.devices(List.of(
+            Map.of("deviceId","purifier","deviceInfo",Map.of("deviceType","DEVICE_AIR_PURIFIER","alias","거실 공기")),
+            Map.of("deviceId","fan","deviceInfo",Map.of("deviceType","DEVICE_AIR_PURIFIER_FAN")),
+            Map.of("deviceId","purifier","deviceInfo",Map.of("deviceType","DEVICE_AIR_PURIFIER")),
+            Map.of("deviceId","washer","deviceInfo",Map.of("deviceType","DEVICE_WASHER"))));
+        check(mixed.size()==2,"purifier and purifier fan accepted, duplicates rejected");
+        check(mixed.get(0).typeName().equals("공기청정기") && mixed.get(0).name().equals("거실 공기"),"purifier name and type");
+        check(mixed.get(1).typeName().equals("공기청정 팬"),"fan type");
+        check(Climate.reading(Map.of("airQualitySensor",Map.of("humidity",43)),now).temperature()==null,"partial purifier sensors");
         invalid(() -> Climate.devices(Map.of()));
         check(Climate.error(200,"1103").contains("인증"),"API auth error");check(Climate.error(429,"").contains("한도"),"rate limit");check(Climate.error(200,"1306").contains("한도"),"API rate limit");check(Climate.error(200,"1222").contains("오프라인"),"offline");check(Climate.error(403,"").contains("접근"),"forbidden");
         System.out.println("Core: "+checks+" assertions passed");

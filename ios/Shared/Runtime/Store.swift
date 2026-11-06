@@ -29,6 +29,11 @@ struct ClimateStore {
             guard SecItemAdd(q as CFDictionary, nil) == errSecSuccess else { throw ThinQError.settings }
         } else if status != errSecSuccess { throw ThinQError.settings }
     }
+    // Call while holding StoreLock so an old refresh cannot restore the previous account cache.
+    func replaceCredentials(_ config: ThinQConfig) throws {
+        try save(config)
+        defaults.removeObject(forKey: "snapshot")
+    }
     func snapshot() -> Snapshot? {
         guard let data = defaults.data(forKey: "snapshot") else { return nil }
         return try? JSONDecoder().decode(Snapshot.self, from: data)
