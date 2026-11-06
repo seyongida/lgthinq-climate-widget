@@ -31,7 +31,7 @@ struct ClimateWidgetView: View {
     @Environment(\.widgetFamily) private var family
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            HStack { Image(systemName: "humidity.fill").foregroundStyle(.mint); Text(entry.snapshot?.selection.name ?? "ThinQ Climate").font(.caption).lineLimit(1); Spacer() }
+            HStack { Image(systemName: "humidity.fill").foregroundStyle(.mint); Text(entry.snapshot?.selection.name ?? "Climate Widget").font(.caption).lineLimit(1); Spacer() }
             if let snapshot = entry.snapshot {
                 HStack(alignment: .firstTextBaseline) {
                     metric("온도", Reading.text(snapshot.reading?.temperature, unit: "°C"), color: .white)
@@ -39,6 +39,7 @@ struct ClimateWidgetView: View {
                     metric("습도", Reading.text(snapshot.reading?.humidity, unit: "%"), color: .mint)
                 }
                 if entry.preview { Text("미리보기").font(.caption2) }
+                if snapshot.selection.id == DemoData.deviceID { Text("샘플 데이터").font(.caption2).foregroundStyle(.orange) }
                 if let error = snapshot.error { Text(error).font(.caption2).foregroundStyle(.orange).lineLimit(2) }
                 if let r = snapshot.reading {
                     HStack(spacing: 3) {
@@ -60,7 +61,7 @@ struct ClimateWidgetView: View {
     let kind = "ThinQClimate"
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: kind, provider: ClimateProvider()) { ClimateWidgetView(entry: $0) }
-            .configurationDisplayName("ThinQ Climate").description("가습기 온도·습도와 마지막 수신 시각")
+            .configurationDisplayName("Climate Widget").description("가습기 온도·습도와 마지막 수신 시각")
             .supportedFamilies([.systemSmall, .systemMedium])
     }
 }

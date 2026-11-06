@@ -36,6 +36,16 @@ final class ClimateCoreTests: XCTestCase {
         XCTAssertEqual(Reading.sensor(80, range: -50...80), 80)
         XCTAssertEqual(Reading.text(nil, unit: "%"), "—")
     }
+    func testDemoReadingIsPlausibleAndFresh() {
+        for hour in 0..<48 {
+            let now = Date(timeIntervalSince1970: Double(hour) * 3600)
+            let r = DemoData.reading(at: now)
+            XCTAssertEqual(r.fetchedAt, now)
+            XCTAssertFalse(r.stale(at: now))
+            XCTAssertTrue((21...25).contains(r.temperature!))
+            XCTAssertTrue((42...52).contains(r.humidity!))
+        }
+    }
     func testFreshness() {
         let now = Date(timeIntervalSince1970: 100)
         let r = Reading(temperature: nil, humidity: nil, fetchedAt: now)

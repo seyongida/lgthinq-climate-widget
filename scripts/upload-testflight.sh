@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 python3 scripts/ios-signing.py --check
+xcode_major=$(xcodebuild -version | sed -n 's/^Xcode \([0-9]*\).*/\1/p')
+(( xcode_major >= 26 )) || { echo "App Store Connect requires Xcode 26 or later" >&2; exit 1; }
 export IOS_SIGNING_DIR
 IOS_SIGNING_DIR=$(mktemp -d "${RUNNER_TEMP:-${TMPDIR:-/tmp}}/thinq-signing.XXXXXX")
 keychain_path="$IOS_SIGNING_DIR/distribution.keychain-db"

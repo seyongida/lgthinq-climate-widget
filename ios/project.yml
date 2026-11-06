@@ -11,20 +11,28 @@ settings:
     CLIMATE_BUNDLE_ID: dev.thinqclimate.widget
     CLIMATE_APP_GROUP: group.dev.thinqclimate.widget
     CLIMATE_KEYCHAIN_GROUP: $(AppIdentifierPrefix)dev.thinqclimate.shared
+    REGISTER_APP_GROUPS: YES
     CODE_SIGN_STYLE: Automatic
     DEVELOPMENT_TEAM: ""
 targets:
   ThinQClimate:
     type: application
     platform: iOS
+    attributes:
+      SystemCapabilities:
+        com.apple.ApplicationGroups:
+          enabled: 1
+        com.apple.Keychain:
+          enabled: 1
     sources: [App, Shared]
     dependencies:
       - target: ThinQClimateWidget
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: $(CLIMATE_BUNDLE_ID)
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         GENERATE_INFOPLIST_FILE: YES
-        INFOPLIST_KEY_CFBundleDisplayName: ThinQ Climate
+        INFOPLIST_KEY_CFBundleDisplayName: Climate Widget
         INFOPLIST_KEY_UILaunchScreen_Generation: YES
         TARGETED_DEVICE_FAMILY: "1,2"
       configs:
@@ -35,6 +43,9 @@ targets:
     info:
       path: Generated/App-Info.plist
       properties:
+        ITSAppUsesNonExemptEncryption: false
+        UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait, UIInterfaceOrientationLandscapeLeft, UIInterfaceOrientationLandscapeRight]
+        UISupportedInterfaceOrientations~ipad: [UIInterfaceOrientationPortrait, UIInterfaceOrientationPortraitUpsideDown, UIInterfaceOrientationLandscapeLeft, UIInterfaceOrientationLandscapeRight]
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         CFBundleShortVersionString: $(MARKETING_VERSION)
         ClimateAppGroup: $(CLIMATE_APP_GROUP)
@@ -49,6 +60,12 @@ targets:
   ThinQClimateWidget:
     type: app-extension
     platform: iOS
+    attributes:
+      SystemCapabilities:
+        com.apple.ApplicationGroups:
+          enabled: 1
+        com.apple.Keychain:
+          enabled: 1
     sources: [Widget, Shared]
     settings:
       base:
@@ -65,7 +82,8 @@ targets:
     info:
       path: Generated/Widget-Info.plist
       properties:
-        CFBundleDisplayName: ThinQ Climate
+        CFBundleDisplayName: Climate Widget
+        ITSAppUsesNonExemptEncryption: false
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         CFBundleShortVersionString: $(MARKETING_VERSION)
         ClimateAppGroup: $(CLIMATE_APP_GROUP)
@@ -77,8 +95,21 @@ targets:
       properties:
         com.apple.security.application-groups: [$(CLIMATE_APP_GROUP)]
         keychain-access-groups: [$(CLIMATE_KEYCHAIN_GROUP)]
+  ThinQClimateUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources: [UITests]
+    dependencies:
+      - target: ThinQClimate
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: $(CLIMATE_BUNDLE_ID).uitests
+        GENERATE_INFOPLIST_FILE: YES
+        TARGETED_DEVICE_FAMILY: "1,2"
 schemes:
   ThinQClimate:
     build:
       targets:
         ThinQClimate: all
+    test:
+      targets: [ThinQClimateUITests]

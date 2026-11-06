@@ -4,7 +4,9 @@
 
 - Android: https://github.com/seyongida/lgthinq-climate-widget/releases/latest/download/ThinQ-Climate.apk
 - 버전별 파일/체크섬: https://github.com/seyongida/lgthinq-climate-widget/releases
-- iOS: TestFlight 서명/심사/공개 초대 링크 설정 후 릴리즈 설명에 연결합니다. 현재 실제 공개 초대 링크는 등록하지 않았습니다.
+- iOS: TestFlight 서명/심사/공개 초대 링크 설정 후 릴리즈 설명과 설치 페이지에 연결합니다. 현재 실제 공개 초대 링크는 등록하지 않았습니다.
+- 설치 페이지: GitHub Pages로 `site/`를 게시합니다. Settings → Pages의 Source를 **GitHub Actions**로 설정해야 합니다. `https://seyongida.github.io/lgthinq-climate-widget/`
+- 개인정보 처리방침: `https://seyongida.github.io/lgthinq-climate-widget/privacy.html`
 
 공개 Android APK는 `.env`가 있는 개발 PC에서 만들어도 PAT가 항상 비어 있습니다. 첫 실행 시 사용자 PAT를 입력받고 연결 설정에서 언제든 교체합니다. 사용자 입력은 Keystore/Keychain에 저장합니다. 토큰 교체가 확인되면 이전 센서 캐시를 비우고 늦은 응답을 거부합니다. 검증 실패 시 기존 인증은 유지합니다.
 
@@ -38,7 +40,39 @@ git push origin v1.3.0
 
 일반 iPhone에 APK처럼 IPA 파일만 다운로드해 설치시키는 방식은 사용할 수 없습니다. 이 프로젝트의 공개 배포 경로는 **TestFlight 공개 초대 링크**입니다. Apple Developer Program, App Store Connect 앱 등록, 두 Bundle ID와 App Group, App Store 배포 인증서와 두 프로비저닝 프로파일이 필요합니다. 외부 테스트는 Apple의 TestFlight 심사와 공개 그룹/초대 링크 설정도 필요합니다.
 
-이 환경에서 확인한 Apple 인증서는 개발용뿐이므로 배포 인증서/API 키를 임의로 대신 사용하거나 서명되지 않은 IPA를 설치 파일로 공개하지 않습니다. 다음 값을 GitHub 저장소 Settings → Secrets and variables → Actions에 설정합니다. 비밀 값은 채팅/이슈에 올리지 마세요.
+서명되지 않은 IPA는 설치 파일로 공개하지 않습니다. App Store Connect는 Xcode 26 이상으로 만든 빌드만 받습니다.
+
+### 공개 링크 만들기
+
+1. [App Store Connect](https://appstoreconnect.apple.com/apps)에서 새 앱을 만들고 Bundle ID `dev.thinqclimate.widget`을 선택합니다. 앱 이름은 LG 상표 문제를 피하도록 정합니다.
+2. Xcode에 Apple 계정이 로그인된 Mac에서 업로드합니다. `--dry-run`을 붙이면 업로드 없이 서명과 내보내기만 확인합니다. 빌드 번호는 이전보다 커야 합니다.
+
+   ```sh
+   scripts/upload-testflight-local.sh <build-number>
+   ```
+
+3. TestFlight 탭의 테스트 정보에 앱 설명, 피드백 이메일, 위 개인정보 처리방침 주소, 아래 심사 메모를 입력합니다.
+4. 외부 테스트 그룹을 만들고 빌드를 추가해 베타 심사에 제출합니다. 승인 후 그룹의 공개 링크를 켭니다.
+5. 링크를 등록하고 설치 페이지를 다시 게시합니다.
+
+   ```sh
+   gh variable set IOS_TESTFLIGHT_URL --body 'https://testflight.apple.com/join/...'
+   gh workflow run pages.yml
+   ```
+
+외부 테스터는 최대 10,000명이고 빌드는 90일 후 만료되므로 그 전에 새 빌드를 올려야 합니다. 심사에는 개인 PAT를 제공하지 않고 데모 모드를 안내합니다.
+
+심사 메모:
+
+```text
+This app reads temperature and humidity from a user's LG ThinQ humidifier using a Personal Access Token the user issues from LG. It is not affiliated with LG.
+
+No sign-in is needed for review. On the first screen, tap "샘플 데이터로 체험하기" (Try with sample data). The app then shows on-device sample values, clearly labelled as sample data, and the home screen widget shows the same values. Tap "체험 종료" to end the demo.
+```
+
+### GitHub Actions로 업로드(선택)
+
+로컬 업로드 대신 CI를 쓸 때만 필요합니다. 다음 값을 GitHub 저장소 Settings → Secrets and variables → Actions에 설정합니다. 비밀 값은 채팅/이슈에 올리지 마세요.
 
 Variables:
 

@@ -1,4 +1,4 @@
-# ThinQ Climate
+# Climate Widget for ThinQ
 
 LG ThinQ 기기의 현재 온도·습도를 휴대폰과 홈 화면 위젯에서 확인합니다. 별도 앱 서버나 구독 없이 공식 ThinQ Connect API를 읽기 전용으로 사용합니다. LG Electronics의 공식 앱이 아닙니다.
 
@@ -6,10 +6,10 @@ LG ThinQ 기기의 현재 온도·습도를 휴대폰과 홈 화면 위젯에서
 
 **[Android APK 다운로드](https://github.com/seyongida/lgthinq-climate-widget/releases/latest/download/ThinQ-Climate.apk)** · [릴리즈와 체크섬](https://github.com/seyongida/lgthinq-climate-widget/releases/latest)
 
-- Android 8 이상: APK를 다운로드하고, Android 안내에 따라 해당 브라우저의 앱 설치를 허용합니다.
-- iPhone/iPad: **TestFlight 배포 준비 중**입니다. Apple 서명과 App Store Connect 설정 후 릴리즈 페이지에 실제 초대 링크를 안내합니다. 시뮬레이터 ZIP이나 서명되지 않은 IPA는 iPhone 설치 파일이 아닙니다.
+- Android 8 이상: 앱 이름은 ThinQ Climate입니다. APK를 다운로드하고, Android 안내에 따라 해당 브라우저의 앱 설치를 허용합니다.
+- iPhone/iPad: 앱 이름은 **Climate Widget for ThinQ**, 홈 화면 표시는 Climate Widget입니다. **TestFlight 배포 준비 중**입니다. 베타 심사 후 릴리즈 페이지와 [설치 페이지](https://seyongida.github.io/lgthinq-climate-widget/)에 실제 초대 링크를 안내합니다. 시뮬레이터 ZIP이나 서명되지 않은 IPA는 iPhone 설치 파일이 아닙니다.
 
-처음 실행하면 **본인의 LG ThinQ Personal Access Token(PAT)**을 입력합니다. 공개 APK에는 개발자의 토큰이 포함되지 않습니다.
+처음 실행하면 **본인의 LG ThinQ Personal Access Token(PAT)**을 입력합니다. 공개 APK에는 개발자의 토큰이 포함되지 않습니다. iOS 앱은 LG 계정 없이 **샘플 데이터로 체험하기**도 지원합니다. 샘플 값은 기기에서 만들며 실제 측정값이 아닙니다.
 
 1. [LG PAT 발급 페이지](https://connect-pat.lgthinq.com)에서 ThinQ와 같은 계정으로 기기 목록·상태 읽기 권한을 발급합니다.
 2. 앱에 PAT, LG 계정 국가 코드(한국 `KR`), 계정 서버 지역(한국 `kic`, 미주 `aic`, 유럽/기타 `eic`)을 입력합니다.

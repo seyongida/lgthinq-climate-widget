@@ -20,6 +20,10 @@ enum Refresher {
         defer { withExtendedLifetime(lock) {} }
         guard let before = store.snapshot() else { return nil }
         let now = Date()
+        if before.selection.id == DemoData.deviceID {
+            store.write(Snapshot(selection: before.selection, reading: DemoData.reading(at: now), error: nil, attemptedAt: now))
+            return store.snapshot()
+        }
         if let attempt = before.attemptedAt, now >= attempt, now.timeIntervalSince(attempt) < 60 { return before }
         let pending = Snapshot(selection: before.selection, reading: before.reading, error: before.error, attemptedAt: now)
         store.write(pending)
