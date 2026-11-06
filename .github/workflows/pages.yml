@@ -1,0 +1,37 @@
+name: Publish install page
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'site/**'
+      - 'scripts/build-site.py'
+      - '.github/workflows/pages.yml'
+  # Run manually after setting or changing the IOS_TESTFLIGHT_URL variable.
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: pages
+  cancel-in-progress: true
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+      - name: Build page
+        env:
+          IOS_TESTFLIGHT_URL: ${{ vars.IOS_TESTFLIGHT_URL }}
+        run: python3 scripts/build-site.py _site
+      - uses: actions/upload-pages-artifact@v3
+  deploy:
+    needs: build
+    runs-on: ubuntu-24.04
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

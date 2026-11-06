@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Climate Widget 설치</title>
+<meta name="description" content="LG ThinQ 가습기의 온도와 습도를 홈 화면 위젯으로 확인하는 비공식 앱">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main>
+  <header>
+    <p class="eyebrow">비공식 오픈소스 앱</p>
+    <h1>Climate Widget for ThinQ</h1>
+    <p class="lead">LG ThinQ 가습기의 온도와 습도를 홈 화면 위젯에서 확인합니다. 앱 서버, 광고, 구독이 없습니다.</p>
+  </header>
+
+  <section class="card" id="ios">
+    <h2>iPhone · iPad</h2>
+    <p class="meta">iOS 17 이상 · Apple TestFlight 베타</p>
+    <!-- ios-install -->
+    <ol>
+      <li>App Store에서 <a href="https://apps.apple.com/app/testflight/id899247664">TestFlight</a>를 설치합니다.</li>
+      <li>설치할 기기에서 TestFlight 공개 링크를 열어 베타에 참여하고 앱을 설치합니다.</li>
+      <li>앱을 열고 LG 계정을 연결하거나 샘플 데이터로 체험합니다.</li>
+      <li>홈 화면을 길게 누르고 편집 → 위젯 추가 → Climate Widget을 선택합니다.</li>
+    </ol>
+    <p class="note">베타 빌드는 Apple 정책에 따라 업로드 후 최대 90일 동안 사용할 수 있으며, 그 전에 새 빌드로 교체됩니다.</p>
+  </section>
+
+  <section class="card" id="android">
+    <h2>Android</h2>
+    <p class="meta">Android 8 이상 · APK 직접 설치</p>
+    <a class="button" href="https://github.com/seyongida/lgthinq-climate-widget/releases/latest/download/ThinQ-Climate.apk">APK 다운로드</a>
+    <p class="note">Android 앱은 ThinQ Climate라는 이름으로 표시됩니다. 다운로드 후 Android 안내에 따라 해당 브라우저의 앱 설치를 허용합니다. <a href="https://github.com/seyongida/lgthinq-climate-widget/releases/latest">체크섬과 릴리즈 노트</a></p>
+  </section>
+
+  <section class="card" id="connect">
+    <h2>LG 계정 연결</h2>
+    <p>LG 비밀번호 대신 본인이 발급한 Personal Access Token(PAT)을 사용합니다.</p>
+    <ol>
+      <li><a href="https://connect-pat.lgthinq.com">LG PAT 발급 페이지</a>에서 ThinQ와 같은 계정으로 기기 목록·상태 읽기 권한을 발급합니다.</li>
+      <li>앱에 PAT, 계정 국가 코드(한국 <code>KR</code>), 서버 지역(한국 <code>kic</code>, 미주 <code>aic</code>, 유럽/기타 <code>eic</code>)을 입력합니다.</li>
+      <li>표시되는 가습기를 선택합니다.</li>
+    </ol>
+    <p class="note">PAT는 다른 사람과 공유하지 마세요. 폐기는 LG 발급 페이지에서 할 수 있습니다.</p>
+  </section>
+
+  <footer>
+    <p>LG Electronics의 공식 앱이 아니며 LG와 제휴하지 않았습니다. LG와 ThinQ는 각 소유자의 상표입니다.</p>
+    <p><a href="privacy.html">개인정보 처리방침</a> · <a href="https://github.com/seyongida/lgthinq-climate-widget">소스 코드</a> · <a href="https://github.com/seyongida/lgthinq-climate-widget/issues">문의와 문제 제보</a></p>
+  </footer>
+</main>
+</body>
+</html>

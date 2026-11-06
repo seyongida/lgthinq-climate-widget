@@ -70,6 +70,17 @@ struct Reading: Codable, Equatable {
         return String(format: "%.1f%@", locale: Locale(identifier: "ko_KR"), number, unit)
     }
 }
+// Sample data for trying the app without an LG account. It is generated on-device, makes no
+// network requests, and must always be labelled as sample data in the UI.
+enum DemoData {
+    static let deviceID = "thinqclimate-demo"
+    static let device = ThinQDevice(id: deviceID, name: "체험용 가습기")
+    static func reading(at date: Date) -> Reading {
+        let phase = date.timeIntervalSince1970 / 3600 * .pi / 6
+        return Reading(temperature: ((23 + 1.5 * sin(phase)) * 10).rounded() / 10,
+                       humidity: (47 + 5 * cos(phase)).rounded(), fetchedAt: date)
+    }
+}
 enum ThinQError: LocalizedError, Equatable {
     case settings, invalidResponse, authentication, rateLimit, offline, forbidden, network
     var errorDescription: String? {

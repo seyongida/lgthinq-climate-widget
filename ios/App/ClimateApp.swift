@@ -14,8 +14,11 @@ import WidgetKit
     @Published var snapshot: Snapshot?
     @Published var hasCredentials = false
     private var pending: ThinQConfig?
+    var isDemo: Bool { snapshot?.selection.id == DemoData.deviceID }
+    private static let demoMessage = "체험 모드입니다. 표시되는 값은 실제 기기 값이 아닌 샘플입니다."
     init() {
         snapshot = ClimateStore().snapshot()
+        if isDemo { message = Self.demoMessage }
         do { if let c = try ClimateStore().config() { country = c.country; region = c.region; hasCredentials = true; message = "저장된 계정으로 연결되어 있습니다. 아래에서 토큰을 교체할 수 있습니다." } }
         catch { message = "저장된 인증을 읽을 수 없습니다. 다시 연결해 주세요." }
     }
@@ -45,10 +48,19 @@ import WidgetKit
         message = "연결됨 · 새로고침을 눌러 센서값을 받으세요."
         snapshot = ClimateStore().snapshot(); WidgetCenter.shared.reloadAllTimelines()
     }
+    func startDemo() async {
+        guard !busy, !hasCredentials else { return }
+        do {
+            guard let lock = StoreLock() else { message = "갱신 중입니다. 잠시 후 다시 시도해 주세요."; return }
+            ClimateStore().select(DemoData.device)
+            withExtendedLifetime(lock) {}
+        }
+        await refresh()
+    }
     func refresh() async {
         guard !busy else { return }; busy = true; defer { busy = false }
         snapshot = await Refresher.refresh(); WidgetCenter.shared.reloadAllTimelines()
-        message = snapshot?.error ?? (snapshot == nil ? "먼저 가습기를 연결해 주세요." : "갱신 요청 완료")
+        message = isDemo ? Self.demoMessage : snapshot?.error ?? (snapshot == nil ? "먼저 가습기를 연결해 주세요." : "갱신 요청 완료")
     }
     func disconnect() {
         guard !busy, let lock = StoreLock() else { message = "갱신 중입니다. 잠시 후 다시 시도해 주세요."; return }
@@ -77,7 +89,14 @@ struct SetupView: View {
                             Text("마지막 수신 \(r.fetchedAt.formatted(date: .abbreviated, time: .shortened))")
                             if r.stale(at: Date()) { Text("오래된 데이터").foregroundStyle(.orange) }
                         } else { Text("수신한 센서 정보 없음") }
+                        if model.isDemo { Text("샘플 데이터 · 실제 기기 값이 아닙니다").foregroundStyle(.orange).accessibilityIdentifier("demoNotice") }
                         Button("지금 새로고침") { Task { await model.refresh() } }.disabled(model.busy)
+                    }
+                }
+                if !model.hasCredentials && !model.isDemo {
+                    Section("LG 계정 없이 둘러보기") {
+                        Button("샘플 데이터로 체험하기") { Task { await model.startDemo() } }.disabled(model.busy).accessibilityIdentifier("startDemo")
+                        Text("LG 계정이나 기기 없이 앱과 위젯 화면을 확인합니다. 네트워크를 사용하지 않으며 값은 실제 측정값이 아닙니다.").font(.footnote)
                     }
                 }
                 Section(model.hasCredentials ? "연결 설정 · 토큰 교체" : "1 · LG 계정 연결") {
@@ -98,11 +117,11 @@ struct SetupView: View {
                     Text(model.message).font(.footnote).accessibilityIdentifier("connectionStatus")
                 }
                 Section("홈 화면에 위젯 추가") {
-                    Text("홈 화면을 길게 누르고 편집 → 위젯 추가 → ThinQ Climate를 선택하세요. 작은 크기와 중간 크기를 지원합니다. 모든 위젯은 선택한 가습기 하나를 표시합니다.")
+                    Text("홈 화면을 길게 누르고 편집 → 위젯 추가 → Climate Widget을 선택하세요. 작은 크기와 중간 크기를 지원합니다. 모든 위젯은 선택한 가습기 하나를 표시합니다.")
                     Text("30분 간격으로 갱신을 요청하지만 iOS가 실제 시점을 결정합니다. 90분 이상 지난 값은 오래된 데이터로 표시하며, 기기가 제공하지 않는 값은 — 로 표시합니다.").font(.footnote).foregroundStyle(.secondary)
                 }
-                Section { Button("연결 해제 및 데이터 삭제", role: .destructive) { model.disconnect() }.disabled(model.busy) }
-            }.navigationTitle("ThinQ Climate").tint(.mint)
+                Section { Button(model.isDemo ? "체험 종료" : "연결 해제 및 데이터 삭제", role: .destructive) { model.disconnect() }.disabled(model.busy).accessibilityIdentifier("disconnect") }
+            }.navigationTitle("Climate Widget for ThinQ").navigationBarTitleDisplayMode(.inline).tint(.mint)
         }
     }
 }
