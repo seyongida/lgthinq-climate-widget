@@ -6,6 +6,8 @@ options:
 settings:
   base:
     SWIFT_VERSION: "5.9"
+    CURRENT_PROJECT_VERSION: "1"
+    MARKETING_VERSION: "1.0.0"
     CLIMATE_APP_GROUP: group.dev.thinqclimate.widget
     CLIMATE_KEYCHAIN_GROUP: $(AppIdentifierPrefix)dev.thinqclimate.shared
     CODE_SIGN_STYLE: Automatic
@@ -27,6 +29,8 @@ targets:
     info:
       path: Generated/App-Info.plist
       properties:
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        CFBundleShortVersionString: $(MARKETING_VERSION)
         ClimateAppGroup: $(CLIMATE_APP_GROUP)
         ClimateKeychainGroup: $(CLIMATE_KEYCHAIN_GROUP)
         CFBundleURLTypes:
@@ -51,6 +55,8 @@ targets:
       path: Generated/Widget-Info.plist
       properties:
         CFBundleDisplayName: ThinQ Climate
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        CFBundleShortVersionString: $(MARKETING_VERSION)
         ClimateAppGroup: $(CLIMATE_APP_GROUP)
         ClimateKeychainGroup: $(CLIMATE_KEYCHAIN_GROUP)
         NSExtension:

@@ -27,14 +27,14 @@ LG ThinQ에 등록된 **가습기의 현재 온도·습도**를 iPhone과 Androi
 
 ### Android
 
-JDK 17, Android SDK 35, **Gradle 8.9**가 필요합니다. Android Studio에서 `android/`를 열거나 다음 명령을 실행하세요. Gradle 실행 파일은 별도 설치합니다(예: `sdk install gradle 8.9`).
+JDK 17과 Android SDK 35가 필요합니다. Android Studio에서 `android/`를 열거나 다음 명령을 실행하세요. 포함된 Gradle Wrapper가 **Gradle 8.9**를 내려받고 SHA-256을 검증합니다.
 
 ```sh
 cd android
-gradle :core:check :app:testDebugUnitTest :app:lintDebug :app:assembleDebug
+./gradlew :core:check :app:testDebugUnitTest :app:lintDebug :app:assembleDebug
 # USB 디버깅을 켠 Android 또는 에뮬레이터
 adb install -r app/build/outputs/apk/debug/app-debug.apk
-gradle :app:connectedDebugAndroidTest
+./gradlew :app:connectedDebugAndroidTest
 ```
 
 CI가 성공하면 Actions의 `android-debug-apk` 아티팩트에서 설치용 디버그 APK를 받을 수 있습니다. 배포용 서명 키는 포함하지 않았습니다.

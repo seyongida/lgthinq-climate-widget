@@ -24,7 +24,7 @@ jobs:
           gradle-version: '8.9'
       - name: Core contracts, HTTP contracts, lint, APK
         working-directory: android
-        run: gradle :core:check :app:testDebugUnitTest :app:lintDebug :app:assembleDebug --stacktrace
+        run: ./gradlew :core:check :app:testDebugUnitTest :app:lintDebug :app:assembleDebug --stacktrace
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -59,7 +59,7 @@ jobs:
           api-level: 35
           arch: x86_64
           disable-animations: true
-          script: cd android && gradle :app:connectedDebugAndroidTest --stacktrace
+          script: cd android && ./gradlew :app:connectedDebugAndroidTest --stacktrace
       - uses: actions/upload-artifact@v4
         if: always()
         with:
