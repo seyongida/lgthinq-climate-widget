@@ -53,6 +53,13 @@ final class Store {
             return new Climate.Reading(o.has("t") ? o.getDouble("t") : null, o.has("h") ? o.getDouble("h") : null,o.getLong("at"));
         } catch (JSONException e) { return null; }
     }
+    boolean accept(String generation, Climate.Reading reading, String error) throws Exception {
+        synchronized (RefreshWorker.LOCK) {
+            if (!generation.equals(generation())) return false;
+            if (reading != null) reading(reading); else error(error);
+            return true;
+        }
+    }
     long attempt() { return prefs.getLong("attempt",0); }
     void attempt(long now) { prefs.edit().putLong("attempt",now).commit(); }
     String error() { return prefs.getString("error", ""); }

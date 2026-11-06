@@ -29,10 +29,8 @@ public final class RefreshWorker extends Worker {
         try { reading = new ThinQ(config).reading(id); }
         catch (Exception e) { error = e instanceof java.io.IOException ? e.getMessage() : "설정 오류 · 앱에서 다시 연결해 주세요."; }
         synchronized (LOCK) {
-            if (generation.equals(store.generation())) {
-                try { if (reading != null) store.reading(reading); else store.error(error); }
-                catch (Exception e) { store.error("센서 정보 저장에 실패했습니다."); }
-            }
+            try { store.accept(generation, reading, error); }
+            catch (Exception e) { store.error("센서 정보 저장에 실패했습니다."); }
             ClimateWidget.renderAll(getApplicationContext());
         }
         return Result.success(); // Next periodic tick retries. No aggressive retry loop on auth/rate errors.

@@ -31,4 +31,14 @@ public class StoreTest {
         store.reading(new Climate.Reading(null,null,100));
         assertNull(store.reading().temperature());assertNull(store.reading().humidity());assertEquals(100,store.reading().fetchedAt());
     }
+    @Test public void lateResultCannotRestoreSwitchedOrDisconnectedData() throws Exception {
+        store.select(new Climate.Device("one","거실"));String generation=store.generation();
+        var reading=new Climate.Reading(23.4,47.0,100);
+        assertTrue(store.accept(generation,reading,null));
+        store.select(new Climate.Device("two","침실"));
+        assertFalse(store.accept(generation,reading,null));assertNull(store.reading());
+        assertFalse(store.accept(generation,null,"old request error"));assertEquals("",store.error());
+        String second=store.generation();store.clear();
+        assertFalse(store.accept(second,reading,null));assertNull(store.reading());assertEquals("",store.id());
+    }
 }
