@@ -15,6 +15,7 @@ local.properties
 *.xcuserstate
 *.mobileprovision
 *.p12
+*.p8
 *.ipa
 *.apk
 __pycache__/

@@ -22,8 +22,8 @@ android {
     defaultConfig {
         applicationId = "dev.thinqclimate.widget"; minSdk = 26; targetSdk = 35
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        versionCode = 5; versionName = "1.3.0"
-        manifestPlaceholders["appLabel"] = "ThinQ Climate"
+        versionCode = 6; versionName = "1.4.0"
+        manifestPlaceholders["appLabel"] = "Climate Widget"
         // Public builds always start with empty credentials, including builds on a PC with .env.
         buildConfigField("String", "THINQ_PAT", javaString(""))
         buildConfigField("String", "THINQ_COUNTRY", javaString("KR"))
@@ -41,7 +41,7 @@ android {
         getByName("debug") {
             // Keep the existing personal app ID so its Keystore and widget settings survive updates.
             versionNameSuffix = "-dev"
-            manifestPlaceholders["appLabel"] = "ThinQ Climate Dev"
+            manifestPlaceholders["appLabel"] = "Climate Widget Dev"
             buildConfigField("String", "THINQ_PAT", javaString(personalValue("THINQ_PAT")))
             buildConfigField("String", "THINQ_COUNTRY", javaString(personalValue("THINQ_COUNTRY", "KR")))
             buildConfigField("String", "THINQ_REGION", javaString(personalValue("THINQ_REGION", "kic")))

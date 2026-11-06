@@ -1,0 +1,28 @@
+name: Watch TestFlight review
+# Starts the Ad Hoc fallback once if the newest TestFlight review is rejected.
+on:
+  schedule:
+    - cron: '17 * * * *'
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: write
+concurrency:
+  group: ios-review-watch
+  cancel-in-progress: false
+jobs:
+  watch:
+    runs-on: ubuntu-24.04
+    env:
+      IOS_BUNDLE_ID: ${{ vars.IOS_BUNDLE_ID || 'dev.thinqclimate.widget' }}
+      ASC_API_KEY_P8_BASE64: ${{ secrets.ASC_API_KEY_P8_BASE64 }}
+      ASC_API_KEY_ID: ${{ secrets.ASC_API_KEY_ID }}
+      ASC_API_ISSUER_ID: ${{ secrets.ASC_API_ISSUER_ID }}
+      HAS_DEVICES: ${{ secrets.IOS_ADHOC_DEVICES != '' }}
+      HAS_CERTIFICATE: ${{ secrets.IOS_DISTRIBUTION_CERT_ID != '' }}
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - uses: actions/checkout@v5
+      - name: Check review state
+        run: bash scripts/watch-review.sh

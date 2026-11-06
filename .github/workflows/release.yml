@@ -76,7 +76,7 @@ jobs:
       - name: Prepare download instructions
         run: python3 scripts/release-notes.py "$GITHUB_REF_NAME" > release-assets/INSTALL.md
       - name: Publish downloads
-        run: gh release create "$GITHUB_REF_NAME" release-assets/* --verify-tag --title "ThinQ Climate $GITHUB_REF_NAME" --notes-file release-assets/INSTALL.md
+        run: gh release create "$GITHUB_REF_NAME" release-assets/* --verify-tag --title "Climate Widget $GITHUB_REF_NAME" --notes-file release-assets/INSTALL.md
   ios:
     if: vars.IOS_TESTFLIGHT_ENABLED == 'true'
     needs: publish

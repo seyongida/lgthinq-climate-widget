@@ -35,18 +35,31 @@ struct ThinQConfig: Codable, Equatable {
         return request
     }
 }
-struct ThinQDevice: Identifiable, Equatable {
+struct ThinQDevice: Identifiable, Equatable, Codable {
     let id: String
     let name: String
+    let type: String
+    init(id: String, name: String, type: String = "DEVICE_HUMIDIFIER") { self.id = id; self.name = name; self.type = type }
+    var typeName: String {
+        switch type {
+        case "DEVICE_AIR_PURIFIER": return "공기청정기"
+        case "DEVICE_AIR_PURIFIER_FAN": return "공기청정 팬"
+        default: return "가습기"
+        }
+    }
+    static let supportedTypes: Set<String> = ["DEVICE_HUMIDIFIER", "DEVICE_AIR_PURIFIER", "DEVICE_AIR_PURIFIER_FAN"]
     static func parse(_ response: Any) throws -> [ThinQDevice] {
         guard let list = response as? [Any] else { throw ThinQError.invalidResponse }
-        return list.compactMap { item in
+        var result: [ThinQDevice] = []
+        for item in list {
             guard let item = item as? [String: Any], let info = item["deviceInfo"] as? [String: Any],
-                  info["deviceType"] as? String == "DEVICE_HUMIDIFIER",
-                  let id = item["deviceId"] as? String, !id.isEmpty else { return nil }
-            let alias = info["alias"] as? String ?? ""
-            return ThinQDevice(id: id, name: alias.isEmpty ? "가습기" : alias)
+                  let type = info["deviceType"] as? String, supportedTypes.contains(type),
+                  let id = item["deviceId"] as? String, !id.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+                  !result.contains(where: { $0.id == id }) else { continue }
+            let alias = (info["alias"] as? String ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+            result.append(ThinQDevice(id: id, name: alias.isEmpty ? (type == "DEVICE_HUMIDIFIER" ? "가습기" : "공기청정기") : alias, type: type))
         }
+        return result
     }
 }
 struct Reading: Codable, Equatable {
@@ -69,16 +82,109 @@ struct Reading: Codable, Equatable {
         guard let number else { return "—" }
         return String(format: "%.1f%@", locale: Locale(identifier: "ko_KR"), number, unit)
     }
+    // Widget format: whole numbers drop the decimal so the digits can be larger.
+    static func compact(_ number: Double?, unit: String) -> String {
+        guard let number else { return "—" }
+        return String(format: number == number.rounded() ? "%.0f%@" : "%.1f%@", locale: Locale(identifier: "ko_KR"), number, unit)
+    }
 }
 // Sample data for trying the app without an LG account. It is generated on-device, makes no
 // network requests, and must always be labelled as sample data in the UI.
 enum DemoData {
-    static let deviceID = "thinqclimate-demo"
-    static let device = ThinQDevice(id: deviceID, name: "체험용 가습기")
-    static func reading(at date: Date) -> Reading {
-        let phase = date.timeIntervalSince1970 / 3600 * .pi / 6
+    static let prefix = "thinqclimate-demo"
+    static let devices = [ThinQDevice(id: prefix + "-1", name: "체험용 가습기"),
+                          ThinQDevice(id: prefix + "-2", name: "체험용 공기청정기", type: "DEVICE_AIR_PURIFIER")]
+    static func isDemo(_ id: String) -> Bool { id.hasPrefix(prefix) }
+    static func reading(at date: Date, offset: Double = 0) -> Reading {
+        let phase = date.timeIntervalSince1970 / 3600 * .pi / 6 + offset
         return Reading(temperature: ((23 + 1.5 * sin(phase)) * 10).rounded() / 10,
                        humidity: (47 + 5 * cos(phase)).rounded(), fetchedAt: date)
+    }
+}
+// Indoor humidity guidance: 40–60% is shown as comfortable.
+enum Comfort: Equatable {
+    case dry, good, humid, unknown
+    static let range = 40.0...60.0
+    init(humidity: Double?) {
+        guard let humidity else { self = .unknown; return }
+        self = humidity < Self.range.lowerBound ? .dry : humidity > Self.range.upperBound ? .humid : .good
+    }
+    var label: String {
+        switch self {
+        case .dry: return "건조"
+        case .good: return "쾌적"
+        case .humid: return "습함"
+        case .unknown: return "—"
+        }
+    }
+    var headline: String {
+        switch self {
+        case .dry: return "조금 건조해요"
+        case .good: return "쾌적해요"
+        case .humid: return "조금 습해요"
+        case .unknown: return "센서값을 기다려요"
+        }
+    }
+    static func average(_ values: [Double?]) -> Double? {
+        let known = values.compactMap { $0 }
+        return known.isEmpty ? nil : known.reduce(0, +) / Double(known.count)
+    }
+}
+struct RGB: Equatable {
+    let r: Int, g: Int, b: Int
+    init(_ r: Int, _ g: Int, _ b: Int) { self.r = r; self.g = g; self.b = b }
+    init?(hex: String) {
+        var value = hex.trimmingCharacters(in: .whitespacesAndNewlines)
+        if value.hasPrefix("#") { value.removeFirst() }
+        guard value.utf8.count == 6, value.utf8.allSatisfy({ (48...57).contains($0) || (65...70).contains($0) || (97...102).contains($0) }),
+              let number = Int(value, radix: 16) else { return nil }
+        self.init(number >> 16, (number >> 8) & 255, number & 255)
+    }
+    var luminance: Double {
+        func linear(_ c: Int) -> Double { let s = Double(c) / 255; return s <= 0.04045 ? s / 12.92 : pow((s + 0.055) / 1.055, 2.4) }
+        return 0.2126 * linear(r) + 0.7152 * linear(g) + 0.0722 * linear(b)
+    }
+    func contrast(with other: RGB) -> Double {
+        let x = luminance, y = other.luminance
+        return (max(x, y) + 0.05) / (min(x, y) + 0.05)
+    }
+    func blended(with other: RGB, amount: Double) -> RGB {
+        func mix(_ a: Int, _ b: Int) -> Int { Int((Double(a) * amount + Double(b) * (1 - amount)).rounded()) }
+        return RGB(mix(r, other.r), mix(g, other.g), mix(b, other.b))
+    }
+}
+// Same palette and legibility rules as Android's WidgetStyle.
+struct WidgetStyle: Equatable {
+    let background: RGB, accent: RGB, opacity: Int
+    init(background: RGB, accent: RGB, opacity: Int = 100) {
+        self.background = background; self.accent = accent; self.opacity = max(40, min(100, opacity))
+    }
+    static let names = ["아이보리", "포레스트", "슬레이트", "오션", "라벤더", "피치"]
+    static let presets = [
+        WidgetStyle(background: RGB(250, 248, 242), accent: RGB(47, 108, 83)),
+        WidgetStyle(background: RGB(31, 59, 48), accent: RGB(183, 224, 170)),
+        WidgetStyle(background: RGB(35, 43, 54), accent: RGB(173, 210, 236)),
+        WidgetStyle(background: RGB(228, 241, 249), accent: RGB(43, 101, 145)),
+        WidgetStyle(background: RGB(239, 233, 248), accent: RGB(111, 77, 151)),
+        WidgetStyle(background: RGB(251, 234, 221), accent: RGB(158, 80, 54))]
+    var foreground: RGB {
+        let dark = RGB(34, 47, 42), light = RGB(247, 250, 248)
+        let chosen = background.contrast(with: dark) >= background.contrast(with: light) ? dark : light
+        if background.contrast(with: chosen) >= 4.5 { return chosen }
+        return background.contrast(with: RGB(0, 0, 0)) >= background.contrast(with: RGB(255, 255, 255)) ? RGB(0, 0, 0) : RGB(255, 255, 255)
+    }
+    var muted: RGB {
+        let value = foreground.blended(with: background, amount: 0.68)
+        return background.contrast(with: value) >= 4.5 ? value : foreground
+    }
+    var warning: RGB { background.luminance > 0.35 ? RGB(151, 80, 28) : RGB(244, 195, 132) }
+    // The system widget editor cannot show validation errors, so invalid input falls back to a legible color.
+    static func resolve(preset: Int, customBackground: String?, customAccent: String?, opacity: Int) -> WidgetStyle {
+        let base = presets[max(0, min(presets.count - 1, preset))]
+        let background = customBackground.flatMap(RGB.init(hex:)) ?? base.background
+        let accent = customAccent.flatMap(RGB.init(hex:)) ?? base.accent
+        let style = WidgetStyle(background: background, accent: accent, opacity: opacity)
+        return background.contrast(with: accent) >= 3 ? style : WidgetStyle(background: background, accent: style.foreground, opacity: opacity)
     }
 }
 enum ThinQError: LocalizedError, Equatable {

@@ -66,7 +66,7 @@ public class ClimateWidget extends AppWidgetProvider {
         }
         return v;
     }
-    private static String compact(Double value,String unit) {
+    static String compact(Double value,String unit) {
         if(value==null)return "—";
         return String.format(Locale.KOREA,value==Math.rint(value)?"%.0f%s":"%.1f%s",value,unit);
     }

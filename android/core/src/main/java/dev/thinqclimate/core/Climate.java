@@ -10,6 +10,24 @@ public final class Climate {
     private Climate() {}
     public static final long STALE_MS = 90 * 60_000L;
     public static final String PUBLIC_CLIENT_KEY = "v6GFvkweNo7DK7yD3ylIZ9w52aKBU0eJ7wLXkSR3";
+    /** Indoor humidity guidance: 40–60% is shown as comfortable. Same rule as iOS. */
+    public enum Comfort {
+        DRY("건조", "조금 건조해요"), GOOD("쾌적", "쾌적해요"), HUMID("습함", "조금 습해요"), UNKNOWN("—", "센서값을 기다려요");
+        public static final double LOW = 40, HIGH = 60;
+        private final String label, headline;
+        Comfort(String label, String headline) { this.label = label; this.headline = headline; }
+        public String label() { return label; }
+        public String headline() { return headline; }
+        public static Comfort of(Double humidity) {
+            if (humidity == null) return UNKNOWN;
+            return humidity < LOW ? DRY : humidity > HIGH ? HUMID : GOOD;
+        }
+    }
+    public static Double average(List<Double> values) {
+        double total = 0; int count = 0;
+        for (Double value : values) if (value != null) { total += value; count++; }
+        return count == 0 ? null : total / count;
+    }
     public record Config(String token, String country, String region, String clientId) {
         public Config {
             token = token.trim(); country = country.trim().toUpperCase(Locale.ROOT);

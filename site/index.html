@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Climate Widget 설치</title>
-<meta name="description" content="LG ThinQ 가습기의 온도와 습도를 홈 화면 위젯으로 확인하는 비공식 앱">
+<meta name="description" content="LG ThinQ 가습기와 공기청정기의 온도와 습도를 홈 화면 위젯으로 확인하는 비공식 앱">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -12,8 +12,15 @@
   <header>
     <p class="eyebrow">비공식 오픈소스 앱</p>
     <h1>Climate Widget for ThinQ</h1>
-    <p class="lead">LG ThinQ 가습기의 온도와 습도를 홈 화면 위젯에서 확인합니다. 앱 서버, 광고, 구독이 없습니다.</p>
+    <p class="lead">LG ThinQ 가습기와 공기청정기의 온도·습도를 앱과 홈 화면 위젯에서 확인합니다. 앱 서버, 광고, 구독이 없습니다.</p>
   </header>
+
+  <section class="card" id="android">
+    <h2>Android</h2>
+    <p class="meta">Android 8 이상 · APK 직접 설치</p>
+    <a class="button" href="https://github.com/seyongida/lgthinq-climate-widget/releases/latest/download/ThinQ-Climate.apk">Android 앱 바로 다운로드</a>
+    <p class="note">다운로드 후 Android 안내에 따라 해당 브라우저의 앱 설치를 허용합니다. <a href="https://github.com/seyongida/lgthinq-climate-widget/releases/latest">체크섬과 릴리즈 노트</a></p>
+  </section>
 
   <section class="card" id="ios">
     <h2>iPhone · iPad</h2>
@@ -26,13 +33,7 @@
       <li>홈 화면을 길게 누르고 편집 → 위젯 추가 → Climate Widget을 선택합니다.</li>
     </ol>
     <p class="note">베타 빌드는 Apple 정책에 따라 업로드 후 최대 90일 동안 사용할 수 있으며, 그 전에 새 빌드로 교체됩니다.</p>
-  </section>
-
-  <section class="card" id="android">
-    <h2>Android</h2>
-    <p class="meta">Android 8 이상 · APK 직접 설치</p>
-    <a class="button" href="https://github.com/seyongida/lgthinq-climate-widget/releases/latest/download/ThinQ-Climate.apk">APK 다운로드</a>
-    <p class="note">Android 앱은 ThinQ Climate라는 이름으로 표시됩니다. 다운로드 후 Android 안내에 따라 해당 브라우저의 앱 설치를 허용합니다. <a href="https://github.com/seyongida/lgthinq-climate-widget/releases/latest">체크섬과 릴리즈 노트</a></p>
+    <!-- adhoc-install -->
   </section>
 
   <section class="card" id="connect">
@@ -41,7 +42,7 @@
     <ol>
       <li><a href="https://connect-pat.lgthinq.com">LG PAT 발급 페이지</a>에서 ThinQ와 같은 계정으로 기기 목록·상태 읽기 권한을 발급합니다.</li>
       <li>앱에 PAT, 계정 국가 코드(한국 <code>KR</code>), 서버 지역(한국 <code>kic</code>, 미주 <code>aic</code>, 유럽/기타 <code>eic</code>)을 입력합니다.</li>
-      <li>표시되는 가습기를 선택합니다.</li>
+      <li>표시할 기기를 선택합니다.</li>
     </ol>
     <p class="note">PAT는 다른 사람과 공유하지 마세요. 폐기는 LG 발급 페이지에서 할 수 있습니다.</p>
   </section>

@@ -25,9 +25,10 @@ public final class CredentialsActivity extends Activity {
         store=new Store(this);Climate.Config existing=null;
         try{existing=store.config();}catch(Exception ignored){/* New input can replace unreadable credentials. */}
         LinearLayout outer=Ui.column(this);ScrollView scroll=new ScrollView(this);outer.addView(scroll);Ui.window(this,outer);
-        LinearLayout content=Ui.column(this);content.setPadding(Ui.dp(this,24),Ui.dp(this,24),Ui.dp(this,24),Ui.dp(this,32));scroll.addView(content);
-        content.addView(Ui.text(this,existing==null?"내 계정으로 시작하기":"연결 설정",27,Ui.INK,true));Ui.gap(content,12);
-        content.addView(Ui.text(this,existing==null?"LG ThinQ 토큰으로 우리 집 기기를 연결하세요.":"새 토큰으로 언제든 연결을 바꿀 수 있어요.\n저장된 토큰은 화면에 표시하지 않습니다.",14,Ui.MUTED,false));Ui.gap(content,24);
+        LinearLayout content=Ui.column(this);content.setPadding(Ui.dp(this,20),Ui.dp(this,28),Ui.dp(this,20),Ui.dp(this,32));scroll.addView(content);
+        content.addView(Ui.logo(this,54));Ui.gap(content,18);
+        content.addView(Ui.text(this,existing==null?"우리 집 공기를\n한눈에 확인하세요":"연결 설정",30,Ui.INK,true));Ui.gap(content,12);
+        content.addView(Ui.text(this,existing==null?"LG ThinQ 가습기와 공기청정기의 온도와 습도를 앱과 위젯에서 보여 드려요.":"새 토큰으로 언제든 연결을 바꿀 수 있어요.\n저장된 토큰은 화면에 표시하지 않습니다.",14,Ui.MUTED,false));Ui.gap(content,24);
         content.addView(Ui.button(this,"LG에서 토큰 발급하기",false,v->startActivity(new Intent(Intent.ACTION_VIEW,Uri.parse("https://connect-pat.lgthinq.com")))));Ui.gap(content,20);
         content.addView(Ui.text(this,existing==null?"Personal Access Token":"새 Personal Access Token",13,Ui.INK,true));Ui.gap(content,8);
         token=new EditText(this);token.setHint(existing==null?"발급받은 토큰 입력":"토큰을 바꾸려면 새 토큰 입력");

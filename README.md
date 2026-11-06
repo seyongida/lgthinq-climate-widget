@@ -6,7 +6,7 @@ LG ThinQ 기기의 현재 온도·습도를 휴대폰과 홈 화면 위젯에서
 
 **[Android APK 다운로드](https://github.com/seyongida/lgthinq-climate-widget/releases/latest/download/ThinQ-Climate.apk)** · [릴리즈와 체크섬](https://github.com/seyongida/lgthinq-climate-widget/releases/latest)
 
-- Android 8 이상: 앱 이름은 ThinQ Climate입니다. APK를 다운로드하고, Android 안내에 따라 해당 브라우저의 앱 설치를 허용합니다.
+- Android 8 이상: APK를 다운로드하고, Android 안내에 따라 해당 브라우저의 앱 설치를 허용합니다.
 - iPhone/iPad: 앱 이름은 **Climate Widget for ThinQ**, 홈 화면 표시는 Climate Widget입니다. **TestFlight 배포 준비 중**입니다. 베타 심사 후 릴리즈 페이지와 [설치 페이지](https://seyongida.github.io/lgthinq-climate-widget/)에 실제 초대 링크를 안내합니다. 시뮬레이터 ZIP이나 서명되지 않은 IPA는 iPhone 설치 파일이 아닙니다.
 
 처음 실행하면 **본인의 LG ThinQ Personal Access Token(PAT)**을 입력합니다. 공개 APK에는 개발자의 토큰이 포함되지 않습니다. iOS 앱은 LG 계정 없이 **샘플 데이터로 체험하기**도 지원합니다. 샘플 값은 기기에서 만들며 실제 측정값이 아닙니다.
@@ -24,7 +24,8 @@ PAT를 채팅이나 이슈에 올리지 마세요. 서버 측 토큰 폐기는 L
 - **1×1**은 첫 번째 기기, **1×2 / 2×1**은 최대 두 기기를 표시합니다. 앱의 **홈 화면 위젯** 선택 카드나 런처 위젯 목록에서 추가하세요.
 - 위젯 본문을 누르면 기기와 색상을 바꿉니다. 6가지 프리셋, 배경/습도 강조색의 `#RRGGBB` 입력, 배경 불투명도(40~100%)와 실제 미리보기를 지원합니다. **이 위젯에 적용**을 눌러야 저장합니다.
 - 아래 수신 시각/↻를 누르면 새로고침합니다. 작은 크기는 시각을 생략할 수 있습니다. 크기를 줄였다 늘려도 두 번째 기기와 색상 설정은 유지합니다.
-- iOS 17 이상: 가습기 한 대와 WidgetKit 작은/중간 위젯을 지원합니다. Android의 다중 기기/색상 설정은 iOS에 아직 적용하지 않았습니다.
+- iOS 17 이상: Android와 같은 기기 종류를 여러 대 선택합니다. 아이폰 홈 화면에는 1×1이 없어 작은 크기(기기 1대), 중간 크기(기기 2대), 잠금 화면 위젯을 지원합니다. 위젯을 길게 눌러 위젯 편집에서 기기, 색상 6종, 직접 색상, 불투명도를 바꿉니다.
+- 앱은 습도 40~60%를 쾌적 구간으로 안내합니다. 일반적인 기준을 표시하는 것이며 의료 또는 건강 조언이 아닙니다.
 
 기존의 큰 위젯 크기는 런처에 남을 수 있습니다. 1×1을 새로 추가하거나 크기를 줄이세요. 실제 셀 크기는 홈 화면 격자와 런처 설정에 따릅니다.
 
@@ -35,7 +36,7 @@ PAT를 채팅이나 이슈에 올리지 마세요. 서버 측 토큰 폐기는 L
 | 항목 | 공개 Release | 개인 Debug/Dev |
 |---|---|---|
 | Android 앱 ID | `dev.thinqclimate.widget.release` | `dev.thinqclimate.widget` |
-| 앱 이름 | ThinQ Climate | ThinQ Climate Dev |
+| 앱 이름 | Climate Widget | Climate Widget Dev |
 | `.env` PAT | **항상 제외** | 선택적으로 내장 |
 | 최초 연결 | 사용자 PAT 입력 | 내장 PAT가 있으면 자동 연결, 없으면 입력 |
 | 토큰 교체 | 연결 설정에서 가능 | 연결 설정에서 가능 |
@@ -57,7 +58,7 @@ cd android
 서명 키가 없으면 Release 빌드는 설치할 수 없는 unsigned APK를 만듭니다. 서명과 공개 방법은 [배포 운영 안내](docs/DISTRIBUTION.md)를 참고하세요. 공개 전에는 다음 검사를 수행합니다.
 
 ```sh
-python3 scripts/verify-release.py android/app/build/outputs/apk/release/app-release.apk --version v1.3.0
+python3 scripts/verify-release.py android/app/build/outputs/apk/release/app-release.apk --version v1.4.0
 ```
 
 Apple 개발 환경:
