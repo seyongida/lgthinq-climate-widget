@@ -9,9 +9,9 @@
 | Android 리소스 XML | 통과 | Python XML 파서 전체 파일 확인 |
 | Apple 개인정보 manifest | 통과 | plistlib 파서로 앱/확장 파일 확인 |
 | 프로젝트/CI YAML | 통과 | YAML 파서 확인 |
-| Android APK·lint·Gradle 단위 테스트 | 통과 | Mobile CI #3 android job |
-| Android Keystore·캐시 계측 테스트 | 통과 | Mobile CI #3 android-device job (API 35 emulator), 늦은 응답 거부 포함 |
-| Swift 테스트 및 iOS 앱/확장 빌드 | 통과 | Mobile CI #3 ios job (macOS), Swift 8 tests / 0 failures |
+| Android APK·lint·Gradle 단위 테스트 | 통과 | Mobile CI #4 android job |
+| Android Keystore·캐시 계측 테스트 | 통과 | Mobile CI #4 android-device job (API 35 emulator), 4 tests / 0 failures, 늦은 응답 거부 포함 |
+| Swift 테스트 및 iOS 앱/확장 빌드 | 통과 | Mobile CI #4 ios job (macOS), Swift 8 tests / 0 failures |
 | LG 실제 PAT 및 가습기 센서 | 미실행 | 사용자 인증·모델이 제공되지 않음 |
 | iPhone/Android 실제 홈 화면 위젯 | 미실행 | 실기기 및 iOS 서명 계정 필요 |
 
@@ -19,4 +19,4 @@
 
 로컬에는 Android SDK·Gradle·Swift·Xcode가 없고 환경의 다운로드 프록시 연결이 거부되어 플랫폼 도구를 추가 설치할 수 없었습니다. 플랫폼 테스트 결과를 로컬 통과로 표현하지 않습니다. 실제 Actions 결과는 이 문서의 작성 시점과 다를 수 있으므로 저장소 Actions를 확인하세요.
 
-플랫폼 검증 근거: [Mobile CI #3](https://github.com/seyongida/lgthinq-climate-widget/actions/runs/42149610256). 이후 Gradle Wrapper와 iOS 버전 메타데이터 추가에 대한 최종 재검증도 Actions에서 확인할 수 있습니다.
+플랫폼 검증 근거: [Mobile CI #4](https://github.com/seyongida/lgthinq-climate-widget/actions/runs/42150170556). 검증한 커밋 `dca217d7fa4e97d6c8b5aa8adeeaed40fbceda6d`에는 Gradle Wrapper와 iOS 버전 메타데이터가 포함됩니다. 모든 플랫폼 job이 성공했고 Android 디버그 APK와 iOS 시뮬레이터 앱을 생성했습니다. 이후 변경은 이 검증 기록·README 링크 정리와 wrapper 스크립트 끝의 빈 줄 정리뿐입니다.

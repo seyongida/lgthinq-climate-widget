@@ -63,7 +63,7 @@ bash scripts/test-core.sh
 
 외부 의존성 없이 Android 코어의 센서 경계값, 자료형, 기기 필터, 요청 헤더·URL·메시지 ID, 오류 분류, 데이터 유효기간을 검사합니다. 앱 단위 테스트는 실제 HTTP 어댑터에 모의 연결을 주입해 JSON, 리소스 정리, 타임아웃, 인증·한도·오프라인 오류와 리다이렉트 차단을 검사합니다. Android 계측 테스트는 실제 Keystore 저장/복호화, 인증 삭제, 기기 변경 캐시 초기화를 확인합니다. Swift 테스트는 동일한 API 계약과 센서·오류·캐시 직렬화를 검사합니다.
 
-[Mobile CI](../../actions/workflows/ci.yml)는 Android 빌드·lint·단위 테스트·에뮬레이터 계측 테스트, Swift 테스트, iOS 앱과 WidgetKit 확장 빌드를 수행합니다. **통과 여부는 실제 Actions 실행 결과를 확인하세요.** 구현 당시 로컬 검증 범위와 미검증 항목은 [검증 기록](docs/VALIDATION.md)에 구분해 적었습니다. 실기기 위젯·절전·PAT 연동의 최종 확인은 [수동 점검표](docs/DEVICE_TESTING.md)를 따릅니다.
+[Mobile CI](https://github.com/seyongida/lgthinq-climate-widget/actions/workflows/ci.yml)는 Android 빌드·lint·단위 테스트·에뮬레이터 계측 테스트, Swift 테스트, iOS 앱과 WidgetKit 확장 빌드를 수행합니다. **통과 여부는 실제 Actions 실행 결과를 확인하세요.** 구현 당시 로컬 검증 범위와 미검증 항목은 [검증 기록](docs/VALIDATION.md)에 구분해 적었습니다. 실기기 위젯·절전·PAT 연동의 최종 확인은 [수동 점검표](docs/DEVICE_TESTING.md)를 따릅니다.
 
 ## 구조와 자료
 
