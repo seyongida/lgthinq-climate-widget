@@ -56,18 +56,28 @@ final class ClimateCoreTests: XCTestCase {
     func testDeviceFilteringMatchesAndroid() throws {
         let list: [[String: Any]] = [
             ["deviceId": "a", "deviceInfo": ["deviceType": "DEVICE_HUMIDIFIER", "alias": "거실"]],
-            ["deviceId": "b", "deviceInfo": ["deviceType": "DEVICE_DEHUMIDIFIER"]],
+            ["deviceId": "b", "deviceInfo": ["deviceType": "DEVICE_WASHER", "alias": "트롬"]],
+            ["deviceId": "x", "deviceInfo": ["deviceType": "NOT_A_DEVICE"]],
             ["deviceId": "c", "deviceInfo": ["deviceType": "DEVICE_HUMIDIFIER", "alias": "  "]],
             ["deviceId": "d", "deviceInfo": ["deviceType": "DEVICE_AIR_PURIFIER"]],
             ["deviceId": "e", "deviceInfo": ["deviceType": "DEVICE_AIR_PURIFIER_FAN", "alias": "안방"]],
             ["deviceId": "a", "deviceInfo": ["deviceType": "DEVICE_HUMIDIFIER", "alias": "중복"]],
             ["deviceInfo": ["deviceType": "DEVICE_HUMIDIFIER"]]]
         let devices = try ThinQDevice.parse(list)
-        XCTAssertEqual(devices, [ThinQDevice(id: "a", name: "거실"), ThinQDevice(id: "c", name: "가습기"),
+        XCTAssertEqual(devices, [ThinQDevice(id: "a", name: "거실"), ThinQDevice(id: "b", name: "트롬", type: "DEVICE_WASHER"), ThinQDevice(id: "c", name: "가습기"),
                                  ThinQDevice(id: "d", name: "공기청정기", type: "DEVICE_AIR_PURIFIER"),
                                  ThinQDevice(id: "e", name: "안방", type: "DEVICE_AIR_PURIFIER_FAN")])
-        XCTAssertEqual(devices.map(\.typeName), ["가습기", "가습기", "공기청정기", "공기청정 팬"])
+        XCTAssertEqual(devices.map(\.typeName), ["가습기", "세탁기", "가습기", "공기청정기", "공기청정 팬"])
         XCTAssertThrowsError(try ThinQDevice.parse([:]))
+    }
+    func testRenamedDevicesKeepSelectionAndOrder() {
+        let selected = [ThinQDevice(id: "fan", name: "존 아마", type: "DEVICE_AIR_PURIFIER_FAN"), ThinQDevice(id: "hum", name: "가습기"),
+                        ThinQDevice(id: "gone", name: "삭제됨", type: "DEVICE_WASHER")]
+        let found = [ThinQDevice(id: "new", name: "새 기기", type: "DEVICE_DRYER"), ThinQDevice(id: "hum", name: "하이드로타워"),
+                     ThinQDevice(id: "fan", name: "공기청정기", type: "DEVICE_AIR_PURIFIER_FAN")]
+        XCTAssertEqual(ThinQDevice.merge(selected: selected, found: found),
+                       [ThinQDevice(id: "fan", name: "공기청정기", type: "DEVICE_AIR_PURIFIER_FAN"), ThinQDevice(id: "hum", name: "하이드로타워")])
+        XCTAssertEqual(ThinQDevice.merge(selected: selected, found: []), selected, "An empty answer must not wipe the selection")
     }
     func testCompactFormatMatchesAndroidWidget() {
         XCTAssertEqual(Reading.compact(24.5, unit: "°"), "24.5°")
@@ -101,7 +111,8 @@ final class ClimateCoreTests: XCTestCase {
     func testStyleResolutionFallsBackToLegibleColors() {
         XCTAssertEqual(WidgetStyle.resolve(preset: 3, customBackground: nil, customAccent: nil, opacity: 100), WidgetStyle.presets[3])
         XCTAssertEqual(WidgetStyle.resolve(preset: 99, customBackground: "bad", customAccent: "bad", opacity: 100), WidgetStyle.presets[5])
-        XCTAssertEqual(WidgetStyle.resolve(preset: 0, customBackground: nil, customAccent: nil, opacity: 5).opacity, 40)
+        XCTAssertEqual(WidgetStyle.resolve(preset: 0, customBackground: nil, customAccent: nil, opacity: 0).opacity, 0)
+        XCTAssertEqual(WidgetStyle.resolve(preset: 0, customBackground: nil, customAccent: nil, opacity: -5).opacity, 0)
         XCTAssertEqual(WidgetStyle.resolve(preset: 0, customBackground: nil, customAccent: nil, opacity: 500).opacity, 100)
         let custom = WidgetStyle.resolve(preset: 0, customBackground: "#112233", customAccent: "#FFEEDD", opacity: 80)
         XCTAssertEqual(custom, WidgetStyle(background: RGB(17, 34, 51), accent: RGB(255, 238, 221), opacity: 80))

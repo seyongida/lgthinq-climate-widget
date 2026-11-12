@@ -22,7 +22,7 @@ android {
     defaultConfig {
         applicationId = "dev.thinqclimate.widget"; minSdk = 26; targetSdk = 35
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        versionCode = 6; versionName = "1.4.0"
+        versionCode = 7; versionName = "1.5.0"
         manifestPlaceholders["appLabel"] = "Climate Widget"
         // Public builds always start with empty credentials, including builds on a PC with .env.
         buildConfigField("String", "THINQ_PAT", javaString(""))

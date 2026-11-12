@@ -1,0 +1,19 @@
+[
+ {
+  "runState": {
+   "currentState": "RINSING"
+  },
+  "remoteControlEnable": {
+   "remoteControlEnabled": false
+  },
+  "timer": {
+   "remainHour": 0,
+   "remainMinute": 23,
+   "totalHour": 0,
+   "totalMinute": 58
+  },
+  "location": {
+   "locationName": "MAIN"
+  }
+ }
+]

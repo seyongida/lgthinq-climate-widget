@@ -1,0 +1,30 @@
+[
+ {
+  "runState": {
+   "currentState": "SPINNING"
+  },
+  "timer": {
+   "remainHour": 1,
+   "remainMinute": 5,
+   "totalHour": 1,
+   "totalMinute": 40
+  },
+  "location": {
+   "locationName": "MAIN"
+  }
+ },
+ {
+  "runState": {
+   "currentState": "END"
+  },
+  "timer": {
+   "remainHour": 0,
+   "remainMinute": 0,
+   "totalHour": 0,
+   "totalMinute": 30
+  },
+  "location": {
+   "locationName": "MINI"
+  }
+ }
+]

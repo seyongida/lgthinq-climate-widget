@@ -1,0 +1,24 @@
+{
+ "temperatureInUnits": [
+  {
+   "targetTemperatureC": 3,
+   "locationName": "FRIDGE",
+   "unit": "C"
+  },
+  {
+   "targetTemperatureC": -20,
+   "locationName": "FREEZER",
+   "unit": "C"
+  }
+ ],
+ "doorStatus": [
+  {
+   "doorState": "OPEN",
+   "locationName": "MAIN"
+  },
+  {
+   "doorState": "CLOSE",
+   "locationName": "FREEZER"
+  }
+ ]
+}

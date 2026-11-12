@@ -1,0 +1,15 @@
+{
+ "operation": {
+  "airConOperationMode": "POWER_ON"
+ },
+ "temperature": {
+  "currentTemperature": 26.5,
+  "targetTemperature": 24,
+  "unit": "C"
+ },
+ "airQualitySensor": {
+  "humidity": 48,
+  "PM2": 12,
+  "totalPollutionLevel": "NORMAL"
+ }
+}

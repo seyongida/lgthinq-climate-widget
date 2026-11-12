@@ -1,0 +1,39 @@
+{
+ "temperature": [
+  {
+   "targetTemperature": 3,
+   "unit": "C",
+   "locationName": "FRIDGE"
+  },
+  {
+   "targetTemperature": -20,
+   "unit": "C",
+   "locationName": "FREEZER"
+  }
+ ],
+ "temperatureInUnits": [
+  {
+   "targetTemperatureC": 3,
+   "targetTemperatureF": 42,
+   "locationName": "FRIDGE",
+   "unit": "C"
+  },
+  {
+   "targetTemperatureC": -20,
+   "targetTemperatureF": 2,
+   "locationName": "FREEZER",
+   "unit": "C"
+  }
+ ],
+ "refrigeration": {
+  "expressMode": false,
+  "expressModeName": "FREEZER",
+  "freshAirFilter": "SMART_ON"
+ },
+ "doorStatus": [
+  {
+   "doorState": "CLOSE",
+   "locationName": "MAIN"
+  }
+ ]
+}

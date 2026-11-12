@@ -1,0 +1,39 @@
+{
+ "airFanJobMode": {
+  "currentJobMode": "SPACE_CLEAN"
+ },
+ "operation": {
+  "airFanOperationMode": "POWER_ON"
+ },
+ "timer": {
+  "absoluteStartTimer": "UNSET",
+  "absoluteStopTimer": "UNSET"
+ },
+ "sleepTimer": {
+  "relativeStopTimer": "UNSET"
+ },
+ "airFlow": {
+  "windStrength": "WIND_2",
+  "windTemperature": 30,
+  "windAngle": "ANGLE_60",
+  "warmMode": "WARM_OFF"
+ },
+ "airQualitySensor": {
+  "odor": 2,
+  "odorLevel": "NORMAL",
+  "PM1": 8,
+  "PM2": 11,
+  "PM10": 15,
+  "humidity": 55,
+  "temperature": 23.5,
+  "totalPollution": 2,
+  "totalPollutionLevel": "NORMAL",
+  "monitoringEnabled": "ALWAYS"
+ },
+ "display": {
+  "light": "LEVEL_1"
+ },
+ "misc": {
+  "uvNano": "ON"
+ }
+}

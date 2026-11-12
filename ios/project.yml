@@ -6,8 +6,8 @@ options:
 settings:
   base:
     SWIFT_VERSION: "5.9"
-    CURRENT_PROJECT_VERSION: "7"
-    MARKETING_VERSION: "1.4.0"
+    CURRENT_PROJECT_VERSION: "8"
+    MARKETING_VERSION: "1.5.0"
     CLIMATE_BUNDLE_ID: dev.thinqclimate.widget
     CLIMATE_APP_GROUP: group.dev.thinqclimate.widget
     CLIMATE_KEYCHAIN_GROUP: $(AppIdentifierPrefix)dev.thinqclimate.shared
@@ -44,6 +44,7 @@ targets:
       path: Generated/App-Info.plist
       properties:
         ITSAppUsesNonExemptEncryption: false
+        NSSupportsLiveActivities: true
         UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait, UIInterfaceOrientationLandscapeLeft, UIInterfaceOrientationLandscapeRight]
         UISupportedInterfaceOrientations~ipad: [UIInterfaceOrientationPortrait, UIInterfaceOrientationPortraitUpsideDown, UIInterfaceOrientationLandscapeLeft, UIInterfaceOrientationLandscapeRight]
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)

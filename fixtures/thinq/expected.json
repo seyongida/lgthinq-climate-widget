@@ -1,0 +1,229 @@
+{
+ "idle_washer.json": {
+  "type": "DEVICE_WASHER",
+  "summary": "꺼짐",
+  "cycles": [
+   [
+    "POWER_OFF",
+    "idle",
+    null,
+    null
+   ]
+  ],
+  "alerts": []
+ },
+ "idle_dryer.json": {
+  "type": "DEVICE_DRYER",
+  "summary": "꺼짐",
+  "cycles": [
+   [
+    "POWER_OFF",
+    "idle",
+    null,
+    null
+   ]
+  ],
+  "alerts": []
+ },
+ "idle_dish_washer.json": {
+  "type": "DEVICE_DISH_WASHER",
+  "summary": "꺼짐",
+  "cycles": [
+   [
+    "POWER_OFF",
+    "idle",
+    null,
+    null
+   ]
+  ],
+  "alerts": []
+ },
+ "idle_oven.json": {
+  "type": "DEVICE_OVEN",
+  "summary": "대기",
+  "cycles": [
+   [
+    "INITIAL",
+    "idle",
+    null,
+    null
+   ]
+  ],
+  "alerts": []
+ },
+ "idle_refrigerator.json": {
+  "type": "DEVICE_REFRIGERATOR",
+  "summary": "냉장 3° · 냉동 -20°",
+  "cycles": [],
+  "alerts": []
+ },
+ "idle_humidifier.json": {
+  "type": "DEVICE_HUMIDIFIER",
+  "summary": "21° · 63% · 공기 좋음",
+  "cycles": [],
+  "alerts": [],
+  "humidity": 63,
+  "temperature": 21,
+  "pm25": 8,
+  "airLevel": "GOOD",
+  "power": true
+ },
+ "idle_air_purifier_fan.json": {
+  "type": "DEVICE_AIR_PURIFIER_FAN",
+  "summary": "23.5° · 55% · 공기 보통",
+  "cycles": [],
+  "alerts": [],
+  "humidity": 55,
+  "temperature": 23.5,
+  "pm25": 11,
+  "airLevel": "NORMAL",
+  "power": true
+ },
+ "idle_stick_cleaner.json": {
+  "type": "DEVICE_STICK_CLEANER",
+  "summary": "충전 완료",
+  "cycles": [],
+  "alerts": []
+ },
+ "idle_water_purifier.json": {
+  "type": "DEVICE_WATER_PURIFIER",
+  "summary": "정상",
+  "cycles": [],
+  "alerts": []
+ },
+ "running_washer.json": {
+  "type": "DEVICE_WASHER",
+  "summary": "헹굼 중 · 23분 남음",
+  "cycles": [
+   [
+    "RINSING",
+    "running",
+    1380,
+    3480
+   ]
+  ],
+  "alerts": []
+ },
+ "running_washtower.json": {
+  "type": "DEVICE_WASHTOWER",
+  "summary": "탈수 중 · 1시간 5분 남음",
+  "cycles": [
+   [
+    "SPINNING",
+    "running",
+    3900,
+    6000
+   ],
+   [
+    "END",
+    "done",
+    null,
+    1800
+   ]
+  ],
+  "alerts": [
+   "미니 세탁이 끝났어요"
+  ]
+ },
+ "done_dryer.json": {
+  "type": "DEVICE_DRYER",
+  "summary": "건조 완료",
+  "cycles": [
+   [
+    "WRINKLE_CARE",
+    "done",
+    null,
+    7800
+   ]
+  ],
+  "alerts": [
+   "건조가 끝났어요"
+  ]
+ },
+ "paused_styler.json": {
+  "type": "DEVICE_STYLER",
+  "summary": "일시정지 · 19분 남음",
+  "cycles": [
+   [
+    "PAUSE",
+    "paused",
+    1140,
+    2880
+   ]
+  ],
+  "alerts": []
+ },
+ "reserved_dish_washer.json": {
+  "type": "DEVICE_DISH_WASHER",
+  "summary": "예약 · 3시간 30분 후 시작",
+  "cycles": [
+   [
+    "RESERVED",
+    "reserved",
+    null,
+    8400
+   ]
+  ],
+  "alerts": []
+ },
+ "cooking_oven.json": {
+  "type": "DEVICE_OVEN",
+  "summary": "조리 중 · 13분 남음",
+  "cycles": [
+   [
+    "COOKING_IN_PROGRESS",
+    "running",
+    750,
+    null
+   ]
+  ],
+  "alerts": []
+ },
+ "error_washer.json": {
+  "type": "DEVICE_WASHER",
+  "summary": "오류",
+  "cycles": [
+   [
+    "ERROR",
+    "error",
+    null,
+    3480
+   ]
+  ],
+  "alerts": [
+   "세탁기 오류가 발생했어요"
+  ]
+ },
+ "open_refrigerator.json": {
+  "type": "DEVICE_REFRIGERATOR",
+  "summary": "냉장 3° · 냉동 -20° · 문 열림",
+  "cycles": [],
+  "alerts": [
+   "냉장고 문이 열려 있어요"
+  ]
+ },
+ "air_conditioner.json": {
+  "type": "DEVICE_AIR_CONDITIONER",
+  "summary": "26.5° · 48% · 공기 보통",
+  "cycles": [],
+  "alerts": [],
+  "humidity": 48,
+  "temperature": 26.5,
+  "pm25": 12,
+  "airLevel": "NORMAL",
+  "power": true
+ },
+ "weird_values.json": {
+  "type": "DEVICE_SOMETHING",
+  "summary": "작동 중",
+  "cycles": [
+   [
+    "SOMETHING_NEW",
+    "idle",
+    null,
+    null
+   ]
+  ],
+  "alerts": []
+ }
+}

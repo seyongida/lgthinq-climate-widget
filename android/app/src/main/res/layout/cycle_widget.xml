@@ -1,0 +1,7 @@
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:id="@+id/cycle_root"
+ android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical"
+ android:paddingHorizontal="12dp" android:paddingVertical="10dp" android:background="@drawable/widget_background">
+ <LinearLayout android:id="@+id/cycle_rows" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" android:orientation="vertical"/>
+ <TextView android:id="@+id/cycle_empty" android:layout_width="match_parent" android:layout_height="match_parent" android:gravity="center_vertical"
+  android:text="@string/cycle_idle" android:textColor="#12211E" android:textSize="14sp" android:fontFamily="sans-serif-medium" android:visibility="gone"/>
+</LinearLayout>

@@ -98,6 +98,8 @@ final class Ui {
                 android.graphics.Rect b=getBounds();
                 clip.reset();clip.addRoundRect(b.left,b.top,b.right,b.bottom,radius,radius,android.graphics.Path.Direction.CW);
                 canvas.save();canvas.clipPath(clip);
+                // The circles below lower the alpha; reset it so later redraws do not fade the gradient.
+                paint.setAlpha(255);
                 paint.setShader(new android.graphics.LinearGradient(b.left,b.top,b.right,b.bottom,colors[0],colors[1],android.graphics.Shader.TileMode.CLAMP));
                 canvas.drawRect(b,paint);paint.setShader(null);
                 paint.setColor(Color.WHITE);paint.setAlpha(18);canvas.drawCircle(b.right-dp(c,40),b.top+dp(c,60),dp(c,130),paint);
@@ -131,6 +133,27 @@ final class Ui {
         }
     }
     static int alpha(int color,int alpha){return (color&0xffffff)|(alpha<<24);}
+    static final int WARM_TINT=Color.rgb(250,236,222);
+    static int typeIcon(String type) {
+        return switch (dev.thinqclimate.core.Home.icon(type)) {
+            case "drop", "water" -> R.drawable.ic_drop;
+            case "air", "vacuum" -> R.drawable.ic_air;
+            case "snow" -> R.drawable.ic_snow;
+            case "washer", "dryer" -> R.drawable.ic_washer;
+            case "hanger" -> R.drawable.ic_hanger;
+            case "dishes" -> R.drawable.ic_dishes;
+            case "oven" -> R.drawable.ic_oven;
+            case "fridge" -> R.drawable.ic_fridge;
+            default -> R.drawable.ic_plug;
+        };
+    }
+    static String time(long millis){return new java.text.SimpleDateFormat("HH:mm",java.util.Locale.KOREA).format(new java.util.Date(millis));}
+    /** "11:04 완료 예정", "12:59 시작 예정", or the state label. */
+    static String cycleDetail(dev.thinqclimate.core.Home.Status s,dev.thinqclimate.core.Home.Cycle c){
+        Long end=s.endsAt(c); if(end!=null)return time(end)+" 완료 예정";
+        if(c.phase()==dev.thinqclimate.core.Home.Phase.RESERVED&&c.startsIn()!=null)return time(s.fetchedAt()+c.startsIn()*1000L)+" 시작 예정";
+        return c.label();
+    }
     static void window(Activity a,View root) {
         a.getWindow().setStatusBarColor(BG);a.getWindow().setNavigationBarColor(BG);
         a.getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR|View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR);

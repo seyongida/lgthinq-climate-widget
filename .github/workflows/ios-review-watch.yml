@@ -20,6 +20,7 @@ jobs:
       ASC_API_ISSUER_ID: ${{ secrets.ASC_API_ISSUER_ID }}
       HAS_DEVICES: ${{ secrets.IOS_ADHOC_DEVICES != '' }}
       HAS_CERTIFICATE: ${{ secrets.IOS_DISTRIBUTION_CERT_ID != '' }}
+      HAS_FIREBASE: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_BASE64 != '' && vars.FIREBASE_IOS_APP_ID != '' }}
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ${{ github.repository }}
     steps:

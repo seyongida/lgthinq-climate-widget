@@ -1,9 +1,8 @@
 #!/usr/bin/env bash
-# Build a device-limited Ad Hoc IPA and its install manifest in the given directory.
+# Build a device-limited Ad Hoc IPA in the given directory, for Firebase App Distribution.
 # Requires the secrets saved by `scripts/asc.py setup`. Runs on GitHub Actions macOS runners.
 set -euo pipefail
 output=$1
-site_url=${SITE_URL:-https://seyongida.github.io/lgthinq-climate-widget}
 
 xcode_major=$(xcodebuild -version | sed -n 's/^Xcode \([0-9]*\).*/\1/p')
 (( xcode_major >= 26 )) || { echo "Xcode 26 or later is required" >&2; exit 1; }
@@ -49,7 +48,4 @@ xcodebuild -exportArchive -archivePath "$IOS_SIGNING_DIR/ThinQClimate.xcarchive"
 
 mkdir -p "$output"
 cp "$IOS_SIGNING_DIR/export/ThinQClimate.ipa" "$output/ThinQClimate.ipa"
-version=$(/usr/libexec/PlistBuddy -c 'Print :ApplicationProperties:CFBundleShortVersionString' "$IOS_SIGNING_DIR/ThinQClimate.xcarchive/Info.plist")
-python3 scripts/asc.py manifest --ipa-url "$site_url/adhoc/ThinQClimate.ipa" --bundle-id "$IOS_BUNDLE_ID" \
-  --bundle-version "$version" --title "Climate Widget" --out "$output/manifest.plist"
-echo "Built Ad Hoc IPA and manifest"
+echo "Built Ad Hoc IPA"

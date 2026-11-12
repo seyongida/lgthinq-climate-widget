@@ -14,7 +14,10 @@ struct DeviceQuery: EntityQuery {
         all().filter { identifiers.contains($0.id) }
     }
     func suggestedEntities() async throws -> [DeviceEntity] { all() }
-    private func all() -> [DeviceEntity] { ClimateStore().devices().map { DeviceEntity(id: $0.id, name: $0.name) } }
+    private func all() -> [DeviceEntity] {
+        let store = ClimateStore(), states = store.states()
+        return store.devices().filter { $0.isClimate(states[$0.id]) }.map { DeviceEntity(id: $0.id, name: $0.name) }
+    }
 }
 enum PaletteOption: Int, AppEnum {
     case ivory, forest, slate, ocean, lavender, peach
@@ -28,7 +31,6 @@ struct ClimateWidgetIntent: WidgetConfigurationIntent {
     @Parameter(title: "첫 번째 기기") var first: DeviceEntity?
     @Parameter(title: "두 번째 기기 · 중간 크기") var second: DeviceEntity?
     @Parameter(title: "색상", default: .ivory) var palette: PaletteOption
-    @Parameter(title: "배경 불투명도", default: 100, controlStyle: .slider, inclusiveRange: (40, 100)) var opacity: Double
     @Parameter(title: "직접 배경 색상 (#RRGGBB)") var customBackground: String?
     @Parameter(title: "직접 습도 색상 (#RRGGBB)") var customAccent: String?
 }
@@ -56,7 +58,8 @@ struct ClimateProvider: AppIntentTimelineProvider {
     }
     private func current(_ configuration: ClimateWidgetIntent, at date: Date) -> ClimateEntry {
         let store = ClimateStore()
-        let selected = store.devices()
+        let states = store.states()
+        let selected = store.devices().filter { $0.isClimate(states[$0.id]) }
         // Chosen devices come first, then the rest of the app's list fills any empty slot.
         var devices: [ThinQDevice] = []
         for id in [configuration.first?.id, configuration.second?.id].compactMap({ $0 }) {
@@ -64,8 +67,8 @@ struct ClimateProvider: AppIntentTimelineProvider {
         }
         devices += selected.filter { !devices.contains($0) }
         let style = WidgetStyle.resolve(preset: configuration.palette.rawValue, customBackground: configuration.customBackground,
-                                        customAccent: configuration.customAccent, opacity: Int(configuration.opacity.rounded()))
-        return ClimateEntry(date: date, devices: devices, states: store.states(), style: style)
+                                        customAccent: configuration.customAccent, opacity: 100)
+        return ClimateEntry(date: date, devices: devices, states: states, style: style)
     }
     private var sample: ClimateEntry {
         let room = ThinQDevice(id: "preview", name: "거실")
@@ -110,7 +113,7 @@ struct ClimateWidgetView: View {
         view().containerBackground(for: .widget) { Color.clear }
     }
 }
-@main struct ClimateWidget: Widget {
+struct ClimateWidget: Widget {
     let kind = "ThinQClimate"
     var body: some WidgetConfiguration {
         AppIntentConfiguration(kind: kind, intent: ClimateWidgetIntent.self, provider: ClimateProvider()) { ClimateWidgetView(entry: $0) }

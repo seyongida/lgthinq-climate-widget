@@ -35,7 +35,7 @@ public final class WidgetConfigActivity extends Activity {
         int width=options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH,horizontal?188:82);
         int height=options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT,paired&&!horizontal?192:96);
         if(width>=120||height>=120){paired=true;horizontal=width>height;}
-        store=new Store(this);devices=store.devices();style=store.widgetStyle(widgetId);
+        store=new Store(this);devices=store.climateDevices();style=store.widgetStyle(widgetId);
         if(saved!=null)style=WidgetStyle.decode(saved.getString("appearance",style.encode()));
         LinearLayout outer=Ui.column(this);ScrollView scroll=new ScrollView(this);outer.addView(scroll);Ui.window(this,outer);
         LinearLayout content=Ui.column(this);content.setPadding(Ui.dp(this,24),Ui.dp(this,22),Ui.dp(this,24),Ui.dp(this,28));scroll.addView(content);
@@ -84,9 +84,9 @@ public final class WidgetConfigActivity extends Activity {
         background=colorField(custom,"배경 색상","#FAF8F2");accent=colorField(custom,"습도 강조 색상","#2F6C53");
         custom.addView(Ui.text(this,"온도와 이름 색상은 배경에 맞춰 자동으로 조정됩니다.",11,Ui.MUTED,false));Ui.gap(custom,12);
         opacityLabel=Ui.text(this,"",12,Ui.MUTED,false);content.addView(opacityLabel);
-        opacity=new SeekBar(this);opacity.setMax(60);opacity.setProgressTintList(android.content.res.ColorStateList.valueOf(Ui.GREEN));content.addView(opacity);
+        opacity=new SeekBar(this);opacity.setMax(100);opacity.setProgressTintList(android.content.res.ColorStateList.valueOf(Ui.GREEN));content.addView(opacity);
         opacity.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener(){
-            @Override public void onProgressChanged(SeekBar bar,int value,boolean fromUser){if(fromUser){style=new WidgetStyle(style.background(),style.accent(),value+40);preview();}}
+            @Override public void onProgressChanged(SeekBar bar,int value,boolean fromUser){if(fromUser){style=new WidgetStyle(style.background(),style.accent(),value);preview();}}
             @Override public void onStartTrackingTouch(SeekBar bar){}
             @Override public void onStopTrackingTouch(SeekBar bar){}
         });
@@ -104,12 +104,13 @@ public final class WidgetConfigActivity extends Activity {
         List<String> ids=new ArrayList<>();if(first==null||devices.isEmpty())return ids;
         ids.add(devices.get(first.getSelectedItemPosition()).id());int b=second.getSelectedItemPosition()-1;if(b>=0)ids.add(devices.get(b).id());return ids;
     }
-    private void syncFields(){updating=true;background.setText(WidgetStyle.hex(style.background()));accent.setText(WidgetStyle.hex(style.accent()));opacity.setProgress(style.opacity()-40);updating=false;}
+    private void syncFields(){updating=true;background.setText(WidgetStyle.hex(style.background()));accent.setText(WidgetStyle.hex(style.accent()));opacity.setProgress(style.opacity());updating=false;}
     private void preview() {
         if(previewHost==null||first==null)return;
         List<String> ids=selection();RemoteViews views=paired?ClimateWidget.pair(this,store,widgetId,ids,horizontal,false,style):ClimateWidget.single(this,store,widgetId,ids,0,style,true);
         previewHost.removeAllViews();previewHost.addView(views.apply(this,previewHost),new FrameLayout.LayoutParams(-1,-1));
-        if(opacityLabel!=null)opacityLabel.setText("배경 불투명도  "+style.opacity()+"%");
+        // Text colors follow the chosen background, but a see-through widget shows the wallpaper instead.
+        if(opacityLabel!=null)opacityLabel.setText("배경 불투명도  "+style.opacity()+"%"+(style.opacity()<40?"\n배경화면에 따라 글자가 잘 안 보일 수 있어요":""));
         for(int i=0;i<swatches.size();i++) {
             WidgetStyle preset=WidgetStyle.PRESETS[i];boolean selected=style.background()==preset.background()&&style.accent()==preset.accent();
             Button b=swatches.get(i);b.setText(WidgetStyle.NAMES[i]+(selected?" ✓":""));b.setTextColor(preset.foreground());

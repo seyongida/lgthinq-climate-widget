@@ -1,0 +1,19 @@
+[
+ {
+  "runState": {
+   "currentState": "INITIAL"
+  },
+  "location": {
+   "locationName": "OVEN"
+  },
+  "temperature": {
+   "targetTemperature": 0,
+   "unit": "C"
+  },
+  "timer": {
+   "remainHour": 0,
+   "remainMinute": 0,
+   "remainSecond": 0
+  }
+ }
+]

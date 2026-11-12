@@ -77,6 +77,11 @@ jobs:
         run: python3 scripts/release-notes.py "$GITHUB_REF_NAME" > release-assets/INSTALL.md
       - name: Publish downloads
         run: gh release create "$GITHUB_REF_NAME" release-assets/* --verify-tag --title "Climate Widget $GITHUB_REF_NAME" --notes-file release-assets/INSTALL.md
+  ios-firebase:
+    if: vars.FIREBASE_IOS_APP_ID != ''
+    needs: publish
+    uses: ./.github/workflows/ios-adhoc.yml
+    secrets: inherit
   ios:
     if: vars.IOS_TESTFLIGHT_ENABLED == 'true'
     needs: publish

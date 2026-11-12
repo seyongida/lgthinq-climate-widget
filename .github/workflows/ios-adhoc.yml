@@ -1,16 +1,16 @@
-name: Publish iOS Ad Hoc install
-# Devices come from the IOS_ADHOC_DEVICES secret. Ad Hoc IPAs embed their device list,
-# so this public release exposes those UDIDs to anyone who inspects the file.
+name: Distribute iOS build with Firebase
+# Builds an Ad Hoc IPA for the devices in IOS_ADHOC_DEVICES and sends it to Firebase App Distribution testers.
+# The IPA embeds those UDIDs, so it is only ever shared through Firebase, never published on GitHub.
 on:
   workflow_dispatch:
+  workflow_call:
 permissions:
-  contents: write
-  actions: write
+  contents: read
 concurrency:
   group: ios-adhoc
   cancel-in-progress: false
 jobs:
-  publish:
+  distribute:
     runs-on: macos-26
     env:
       IOS_TEAM_ID: ${{ vars.IOS_TEAM_ID }}
@@ -24,21 +24,29 @@ jobs:
       ASC_API_KEY_P8_BASE64: ${{ secrets.ASC_API_KEY_P8_BASE64 }}
       ASC_API_KEY_ID: ${{ secrets.ASC_API_KEY_ID }}
       ASC_API_ISSUER_ID: ${{ secrets.ASC_API_ISSUER_ID }}
-      GH_TOKEN: ${{ github.token }}
-      GH_REPO: ${{ github.repository }}
+      FIREBASE_SERVICE_ACCOUNT_BASE64: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_BASE64 }}
+      FIREBASE_IOS_APP_ID: ${{ vars.FIREBASE_IOS_APP_ID }}
+      FIREBASE_GROUPS: ${{ vars.FIREBASE_GROUPS || 'friends' }}
     steps:
       - uses: actions/checkout@v5
+      - name: Check configuration
+        run: |
+          for name in IOS_ADHOC_DEVICES IOS_DISTRIBUTION_CERT_ID FIREBASE_SERVICE_ACCOUNT_BASE64 FIREBASE_IOS_APP_ID; do
+            if [[ -z "${!name}" ]]; then echo "::error::$name is not configured. See docs/DISTRIBUTION.md."; exit 1; fi
+          done
       - name: Install XcodeGen
         run: brew install xcodegen
       - name: Test Swift core
         run: swift test --package-path ios
       - name: Build Ad Hoc IPA
         run: bash scripts/build-adhoc.sh dist
-      # --latest=false keeps the public Android download link on the APK release.
-      - name: Publish release
+      - name: Upload to Firebase App Distribution
         run: |
-          gh release create "adhoc-$GITHUB_RUN_NUMBER" dist/ThinQClimate.ipa dist/manifest.plist \
-            --prerelease --latest=false --target "$GITHUB_SHA" \
-            --title "iOS Ad Hoc $GITHUB_RUN_NUMBER" --notes "Installs only on registered devices."
-      - name: Update install page
-        run: gh workflow run pages.yml --ref main
+          key="$RUNNER_TEMP/firebase.json"
+          trap 'rm -f "$key"' EXIT
+          printf '%s' "$FIREBASE_SERVICE_ACCOUNT_BASE64" | base64 --decode > "$key"
+          chmod 600 "$key"
+          version=$(sed -n 's/^ *MARKETING_VERSION: "\(.*\)"/\1/p' ios/project.yml)
+          GOOGLE_APPLICATION_CREDENTIALS="$key" npx -y firebase-tools@14.27.0 appdistribution:distribute dist/ThinQClimate.ipa \
+            --app "$FIREBASE_IOS_APP_ID" --groups "$FIREBASE_GROUPS" \
+            --release-notes "Climate Widget $version ($GITHUB_RUN_NUMBER). 등록한 iPhone에서만 설치할 수 있어요."

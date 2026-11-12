@@ -38,7 +38,7 @@ public final class CredentialsActivity extends Activity {
         content.addView(Ui.text(this,"LG 계정 서버 지역",13,Ui.INK,true));Ui.gap(content,8);
         region=new Spinner(this);region.setAdapter(new ArrayAdapter<>(this,android.R.layout.simple_spinner_dropdown_item,new String[]{"kic · 한국/아시아","aic · 미주","eic · 유럽/기타"}));region.setBackground(Ui.touch(this,android.graphics.Color.WHITE,14,true));region.setPadding(Ui.dp(this,12),Ui.dp(this,12),Ui.dp(this,12),Ui.dp(this,12));
         if(existing!=null)region.setSelection(List.of("kic","aic","eic").indexOf(existing.region()));content.addView(region);Ui.gap(content,18);
-        status=Ui.text(this,"기기 목록·상태 조회 권한이 있는 토큰을 사용하세요.\n토큰은 이 휴대폰의 암호화 저장소에 보관합니다.",12,Ui.MUTED,false);content.addView(status);Ui.gap(content,20);
+        status=Ui.text(this,"토큰 권한은 기기 목록·상태 조회가 필요하고, 에너지 사용량 조회를 더하면 전기 사용량도 보여 드려요. 제어 권한은 필요 없어요.\n토큰은 이 휴대폰의 암호화 저장소에 보관합니다.",12,Ui.MUTED,false);content.addView(status);Ui.gap(content,20);
         connect=Ui.button(this,existing==null?"연결하고 시작하기":"연결 확인 후 저장",true,v->save());content.addView(connect);Ui.gap(content,12);
         content.addView(Ui.button(this,"취소",false,v->finish()));
     }

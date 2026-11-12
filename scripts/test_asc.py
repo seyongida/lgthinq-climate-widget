@@ -37,7 +37,11 @@ class Stub(BaseHTTPRequestHandler):
     def handle_any(self):
         state = self.server.state
         length = int(self.headers.get('Content-Length') or 0)
-        body = json.loads(self.rfile.read(length)) if length else None
+        raw = self.rfile.read(length) if length else b''
+        try:
+            body = json.loads(raw) if raw else None
+        except ValueError:
+            body = raw.decode()  # The token request is form-encoded.
         url = urlparse(self.path)
         query = {key: values[0] for key, values in parse_qs(url.query).items()}
         state['requests'].append((self.command, url.path, query, body))
@@ -50,9 +54,20 @@ class Stub(BaseHTTPRequestHandler):
         if key == ('GET', '/v1/betaAppReviewSubmissions'):
             found = state['reviews'].get(query['filter[build]'])
             return self.reply(200, {'data': [{'attributes': {'betaReviewState': found}}] if found else []})
-        if key == ('GET', '/v1/devices'):
+        if key == ('GET', '/v1/devices') and 'filter[udid]' in query:
             known = query['filter[udid]'] == UDID_KNOWN
             return self.reply(200, {'data': [{'id': 'dev-known', 'attributes': {'status': 'ENABLED'}}] if known else []})
+        if key == ('GET', '/v1/devices') and query.get('filter[platform]') == 'IOS' and 'filter[udid]' not in query:
+            return self.reply(200, {'data': [
+                {'id': '1', 'attributes': {'name': '내 iPhone', 'udid': UDID_KNOWN, 'deviceClass': 'IPHONE', 'status': 'ENABLED'}},
+                {'id': '2', 'attributes': {'name': 'Mac', 'udid': 'B' * 40, 'deviceClass': 'MAC', 'status': 'ENABLED'}},
+                {'id': '3', 'attributes': {'name': 'i|Pad', 'udid': UDID_NEW, 'deviceClass': 'IPAD', 'status': 'ENABLED'}}]})
+        if key == ('POST', '/token'):
+            return self.reply(200, {'access_token': 'stub-token'})
+        if self.command == 'GET' and url.path.endswith('/groups'):
+            if url.path != '/v1/projects/439215807830/groups':
+                return self.reply(403, {'error': {'message': 'Firebase App Distribution API has not been used in project 917123264746 before'}})
+            return self.reply(200, {'groups': [{'name': 'projects/439215807830/groups/friends'}]})
         if key == ('POST', '/v1/devices'):
             return self.reply(201, {'data': {'id': 'dev-new'}})
         if key == ('GET', '/v1/bundleIds'):
@@ -188,11 +203,37 @@ class AscTests(unittest.TestCase):
         identities = subprocess.run(['security', 'find-identity', str(keychain)], capture_output=True, text=True).stdout
         self.assertIn('ThinQ Climate Distribution', identities)
 
-    def test_manifest_format(self):
-        item = plistlib.loads(asc.manifest('https://x/a.ipa', 'dev.app', '1.3.0', 'A & B'))['items'][0]
-        self.assertEqual(item['assets'], [{'kind': 'software-package', 'url': 'https://x/a.ipa'}])
-        self.assertEqual(item['metadata'], {'bundle-identifier': 'dev.app', 'bundle-version': '1.3.0', 'kind': 'software', 'title': 'A & B'})
+    def test_apple_registered_devices_merge_with_firebase(self):
+        apple = asc.apple_devices(self.client)
+        self.assertEqual(apple, [('내 iPhone', UDID_KNOWN), ('i Pad', UDID_NEW)])
+        query = [r for r in self.server.state['requests'] if r[1] == '/v1/devices'][0][2]
+        self.assertEqual((query['filter[platform]'], query['filter[status]']), ('IOS', 'ENABLED'))
+        merged = asc.merge_devices([('친구 iPhone', UDID_NEW.lower())], apple)
+        self.assertEqual(merged, [('친구 iPhone', UDID_NEW.lower()), ('내 iPhone', UDID_KNOWN)])
 
+    def test_firebase_key_must_match_the_app_project(self):
+        pem = self.temp / 'sa.pem'
+        subprocess.run(['openssl', 'genpkey', '-algorithm', 'RSA', '-pkeyopt', 'rsa_keygen_bits:2048', '-out', str(pem)], check=True, capture_output=True)
+        key = {'type': 'service_account', 'client_email': 'ci@x.iam.gserviceaccount.com', 'private_key': pem.read_text(),
+               'token_uri': os.environ['ASC_API_BASE'] + '/token'}
+        with mock.patch.dict(os.environ, {'FIREBASE_API_BASE': os.environ['ASC_API_BASE']}):
+            asc.check_firebase(key, '1:439215807830:ios:abc', 'friends')
+            with self.assertRaises(SystemExit) as wrong:
+                asc.check_firebase(key, '1:111:ios:abc', 'friends')
+            self.assertIn('917123264746', str(wrong.exception))
+            with self.assertRaises(SystemExit) as group:
+                asc.check_firebase(key, '1:439215807830:ios:abc', 'friends,family')
+            self.assertIn('family', str(group.exception))
+
+    def test_firebase_udid_export(self):
+        text = ("Device ID\tDevice Name\tDevice Platform\n"
+                f"{UDID_NEW}\t민수의 iPhone\tios\n{UDID_KNOWN}\tTab|let\tipados\n"
+                "notaudid\tBroken\tios\nABCDEF0123456789ABCDEF0123456789ABCDEF01\tMac\tmacos\n"
+                f"{UDID_NEW}\t중복\tios\n")
+        self.assertEqual(asc.parse_export(text), [('민수의 iPhone', UDID_NEW), ('Tab let', UDID_KNOWN)])
+        self.assertEqual(asc.parse_devices('\n'.join(f'{n}|{u}' for n, u in asc.parse_export(text))), asc.parse_export(text))
+        with self.assertRaises(SystemExit):
+            asc.parse_export('Device ID\tDevice Name\tDevice Platform\n')
 
 class SiteTests(unittest.TestCase):
     def build(self, **env):
@@ -208,41 +249,22 @@ class SiteTests(unittest.TestCase):
         html = (out / 'index.html').read_text()
         self.assertNotIn('itms-services', html)
         self.assertIn('class="pending"', html)
-        self.assertFalse((out / 'adhoc').exists())
-
-    def test_adhoc_files_add_direct_install(self):
-        files = Path(tempfile.mkdtemp())
-        self.addCleanup(shutil.rmtree, files)
-        (files / 'ThinQClimate.ipa').write_bytes(b'ipa')
-        (files / 'manifest.plist').write_bytes(b'plist')
-        result, out = self.build(ADHOC_DIR=str(files))
-        self.assertEqual(result.returncode, 0, result.stderr)
-        html = (out / 'index.html').read_text()
-        self.assertIn('itms-services://?action=download-manifest&amp;url=https://seyongida.github.io/lgthinq-climate-widget/adhoc/manifest.plist', html)
-        self.assertEqual((out / 'adhoc/ThinQClimate.ipa').read_bytes(), b'ipa')
-
-    def test_incomplete_adhoc_directory_fails(self):
-        files = Path(tempfile.mkdtemp())
-        self.addCleanup(shutil.rmtree, files)
-        result, _ = self.build(ADHOC_DIR=str(files))
-        self.assertNotEqual(result.returncode, 0)
-
-
+        
 class WatcherTests(unittest.TestCase):
     """Runs watch-review.sh with fake gh and asc commands to check its decisions."""
 
-    def run_watch(self, state, releases='', devices='true', certificate='true', key='x'):
+    def run_watch(self, state, runs='', devices='true', certificate='true', key='x', firebase='true'):
         temp = Path(tempfile.mkdtemp())
         self.addCleanup(shutil.rmtree, temp)
         (temp / 'scripts').mkdir()
         (temp / 'scripts/asc.py').write_text(f'print("{state}")\n')
         (temp / 'bin').mkdir()
         gh = temp / 'bin/gh'
-        gh.write_text(f'#!/bin/bash\necho "$*" >> "{temp}/gh.log"\nif [[ "$1 $2" == "release list" ]]; then printf "%s" "{releases}"; fi\n')
+        gh.write_text(f'#!/bin/bash\necho "$*" >> "{temp}/gh.log"\nif [[ "$1 $2" == "run list" ]]; then printf "%s" "{runs}"; fi\n')
         gh.chmod(0o755)
         result = subprocess.run(['bash', str(ROOT / 'watch-review.sh')], cwd=temp, capture_output=True, text=True,
                                 env={'PATH': f'{temp}/bin:{os.environ["PATH"]}', 'ASC_API_KEY_P8_BASE64': key,
-                                     'HAS_DEVICES': devices, 'HAS_CERTIFICATE': certificate})
+                                     'HAS_DEVICES': devices, 'HAS_CERTIFICATE': certificate, 'HAS_FIREBASE': firebase})
         log = (temp / 'gh.log').read_text() if (temp / 'gh.log').exists() else ''
         return result, 'workflow run ios-adhoc.yml' in log
 
@@ -258,7 +280,7 @@ class WatcherTests(unittest.TestCase):
             self.assertFalse(started, state)
 
     def test_only_one_release_is_started(self):
-        result, started = self.run_watch('REJECTED', releases='adhoc-3\\nv1.3.0\\n')
+        result, started = self.run_watch('REJECTED', runs='2026-11-12T01:00:00Z\\n')
         self.assertEqual(result.returncode, 0)
         self.assertFalse(started)
 
@@ -267,6 +289,12 @@ class WatcherTests(unittest.TestCase):
         self.assertEqual(result.returncode, 1)
         self.assertFalse(started)
         self.assertIn('rejected', result.stdout)
+
+    def test_missing_firebase_fails_loudly(self):
+        result, started = self.run_watch('REJECTED', firebase='false')
+        self.assertEqual(result.returncode, 1)
+        self.assertFalse(started)
+        self.assertIn('Firebase', result.stdout)
 
     def test_without_key_is_a_quiet_no_op(self):
         result, started = self.run_watch('REJECTED', key='')

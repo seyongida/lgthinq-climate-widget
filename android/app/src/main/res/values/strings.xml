@@ -11,4 +11,10 @@
  <string name="preview_room">거실</string>
  <string name="preview_temperature">24°</string>
  <string name="preview_humidity">47%</string>
+ <string name="cycle_widget_name">가전 타이머</string>
+ <string name="cycle_widget_description">세탁기·건조기·식기세척기가 언제 끝나는지 1초 단위로 보여 줍니다.</string>
+ <string name="cycle_idle">진행 중인 가전이 없어요</string>
+ <string name="cycle_preview_name">세탁기</string>
+ <string name="cycle_preview_state">헹굼 중 · 11:04 완료 예정</string>
+ <string name="cycle_preview_time">23:00</string>
 </resources>

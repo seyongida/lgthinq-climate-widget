@@ -1,0 +1,9 @@
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:layout_width="match_parent" android:layout_height="match_parent"
+ android:orientation="horizontal" android:gravity="center_vertical" android:padding="12dp" android:background="@drawable/widget_background">
+ <ImageView android:layout_width="30dp" android:layout_height="30dp" android:padding="6dp" android:background="@drawable/cycle_icon_background" android:src="@drawable/ic_washer" android:tint="#186E5A"/>
+ <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:layout_marginStart="10dp" android:orientation="vertical">
+  <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/cycle_preview_name" android:textColor="#12211E" android:textSize="13sp"/>
+  <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/cycle_preview_state" android:textColor="#62716B" android:textSize="11sp"/>
+ </LinearLayout>
+ <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/cycle_preview_time" android:textColor="#12211E" android:textSize="20sp" android:textStyle="bold"/>
+</LinearLayout>
