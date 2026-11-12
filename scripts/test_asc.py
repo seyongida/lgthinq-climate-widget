@@ -50,7 +50,8 @@ class Stub(BaseHTTPRequestHandler):
         if key == ('GET', '/v1/apps'):
             return self.reply(200, {'data': [{'id': 'app1'}]})
         if key == ('GET', '/v1/builds'):
-            return self.reply(200, {'data': [{'id': 'b7'}, {'id': 'b6'}]})
+            return self.reply(200, {'data': [{'id': 'b7', 'attributes': {'version': '7'}}, {'id': 'b6', 'attributes': {'version': '12'}},
+                                             {'id': 'bx', 'attributes': {'version': '1.0.1'}}]})
         if key == ('GET', '/v1/betaAppReviewSubmissions'):
             found = state['reviews'].get(query['filter[build]'])
             return self.reply(200, {'data': [{'attributes': {'betaReviewState': found}}] if found else []})
@@ -224,6 +225,15 @@ class AscTests(unittest.TestCase):
             with self.assertRaises(SystemExit) as group:
                 asc.check_firebase(key, '1:439215807830:ios:abc', 'friends,family')
             self.assertIn('family', str(group.exception))
+
+    def test_next_build_number_follows_the_highest_upload(self):
+        self.assertEqual(asc.next_build(self.client, 'x.y'), 13)
+
+    def test_app_store_profile_has_no_devices(self):
+        asc.create_profile(self.client, 'ThinQ AppStore app', 'bundle-app', 'cert1', None, 'IOS_APP_STORE')
+        body = [r[3]['data'] for r in self.server.state['requests'] if r[:2] == ('POST', '/v1/profiles')][-1]
+        self.assertEqual(body['attributes']['profileType'], 'IOS_APP_STORE')
+        self.assertNotIn('devices', body['relationships'])
 
     def test_firebase_udid_export(self):
         text = ("Device ID\tDevice Name\tDevice Platform\n"

@@ -87,5 +87,5 @@ jobs:
     needs: publish
     uses: ./.github/workflows/ios-testflight.yml
     with:
-      build_number: ${{ vars.IOS_BUILD_NUMBER || github.run_number }}
+      build_number: ${{ vars.IOS_BUILD_NUMBER || '' }}
     secrets: inherit

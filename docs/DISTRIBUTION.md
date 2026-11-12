@@ -72,6 +72,8 @@ No sign-in is needed for review. On the first screen, tap "샘플 데이터로 �
 
 ### Firebase로 등록한 iPhone에 배포
 
+**친구에게는 TestFlight 공개 링크가 기본입니다.** Firebase는 TestFlight 심사가 거절됐을 때의 대비책으로만 씁니다. 릴리즈 태그마다 자동 배포는 유지합니다.
+
 TestFlight와 별개로, 초대한 사람의 iPhone에만 설치되는 빌드를 Firebase App Distribution으로 보냅니다. 심사가 없고, 친구는 초대 메일에서 기기를 등록하므로 UDID를 직접 찾을 필요가 없습니다. 빌드에는 등록 기기의 UDID가 들어 있어 Firebase로만 전달하고 GitHub에는 올리지 않습니다. 앱에는 Firebase SDK가 없습니다.
 
 한 번만 설정합니다.
@@ -139,7 +141,7 @@ Variables:
 | `IOS_APP_GROUP` | 두 타깃에 등록한 App Group, 기본 `group.dev.thinqclimate.widget` |
 | `IOS_TESTFLIGHT_URL` | 실제 생성한 `https://testflight.apple.com/join/...` 공개 초대 링크 |
 | `IOS_TESTFLIGHT_ENABLED` | 태그 릴리즈 후 자동 업로드할 때만 `true` |
-| `IOS_BUILD_NUMBER` | 자동 업로드에서 지정할 빌드 번호(선택). 없으면 릴리즈 워크플로 실행 번호 사용 |
+| `IOS_BUILD_NUMBER` | 등록하지 않습니다. 비워 두면 App Store Connect의 가장 높은 빌드 번호에 1을 더해 씁니다. 특정 번호가 꼭 필요할 때만 일시적으로 지정하세요 |
 
 Secrets:
 

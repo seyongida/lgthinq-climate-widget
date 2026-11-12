@@ -166,18 +166,34 @@ def bundle_resource_id(client, identifier):
     raise SystemExit('Bundle ID is not registered: ' + identifier)
 
 
-def create_profile(client, name, bundle_id, certificate_id, device_ids):
-    # A profile's device list is fixed, so replace it instead of reusing it.
+def create_profile(client, name, bundle_id, certificate_id, device_ids, profile_type='IOS_APP_ADHOC'):
+    # A profile's contents are fixed, so replace it instead of reusing it.
     for old in client.get('/v1/profiles', filter_name=name, limit=200):
         if old['attributes']['name'] == name:
             client.request('DELETE', '/v1/profiles/' + old['id'])
-    body = {'data': {'type': 'profiles',
-                     'attributes': {'name': name, 'profileType': 'IOS_APP_ADHOC'},
-                     'relationships': {
-                         'bundleId': {'data': {'type': 'bundleIds', 'id': bundle_id}},
-                         'certificates': {'data': [{'type': 'certificates', 'id': certificate_id}]},
-                         'devices': {'data': [{'type': 'devices', 'id': item} for item in device_ids]}}}}
+    relationships = {'bundleId': {'data': {'type': 'bundleIds', 'id': bundle_id}},
+                     'certificates': {'data': [{'type': 'certificates', 'id': certificate_id}]}}
+    if device_ids is not None:
+        relationships['devices'] = {'data': [{'type': 'devices', 'id': item} for item in device_ids]}
+    body = {'data': {'type': 'profiles', 'attributes': {'name': name, 'profileType': profile_type}, 'relationships': relationships}}
     return client.request('POST', '/v1/profiles', body=body)['data']['attributes']
+
+
+def next_build(client, bundle_id):
+    """One more than the highest build number uploaded for the app, so every upload is accepted."""
+    apps = client.get('/v1/apps', filter_bundleId=bundle_id, limit=1)
+    if not apps:
+        raise SystemExit('No App Store Connect app for ' + bundle_id)
+    numbers = [int(b['attributes']['version']) for b in client.get('/v1/builds', filter_app=apps[0]['id'], limit=200)
+               if str(b.get('attributes', {}).get('version', '')).isdigit()]
+    return max(numbers, default=0) + 1
+
+
+def distribution_certificate(client):
+    found = client.get('/v1/certificates', filter_certificateType='DISTRIBUTION', limit=200)
+    if len(found) != 1:
+        raise SystemExit(f'Expected one distribution certificate, found {len(found)}. Pass --certificate-id.')
+    return found[0]['id']
 
 
 def prepare_adhoc(client, signing_dir, team, bundle, certificate_id, devices_text):
@@ -309,6 +325,13 @@ def main():
     firebase.add_argument('--key', required=True, help='Path to the service account JSON key')
     firebase.add_argument('--app-id', required=True, help='Firebase iOS app ID, like 1:1234567890:ios:abcdef')
     firebase.add_argument('--groups', default='friends', help='Comma-separated tester group aliases')
+    commands.add_parser('next-build', help='Print the next unused build number (uses the ASC_* environment)')
+    store = commands.add_parser('appstore-profiles', help='Create App Store profiles for CI TestFlight uploads and save them')
+    store.add_argument('--key', required=True)
+    store.add_argument('--key-id', required=True)
+    store.add_argument('--issuer', required=True)
+    store.add_argument('--bundle-id', default='dev.thinqclimate.widget')
+    store.add_argument('--certificate-id', help='Distribution certificate resource ID, if the account has several')
     imported = commands.add_parser('import-devices', help='Save the devices for Firebase builds and start a build')
     imported.add_argument('file', nargs='?', help='Firebase "Export Apple UDIDs" file')
     imported.add_argument('--apple', action='store_true', help='Also include every iPhone and iPad registered in the Apple account')
@@ -327,6 +350,16 @@ def main():
                               os.environ['IOS_BUNDLE_ID'], os.environ['IOS_DISTRIBUTION_CERT_ID'],
                               os.environ['IOS_ADHOC_DEVICES'])
         print(f'Prepared Ad Hoc profiles for {count} device(s)')
+    elif args.command == 'next-build':
+        print(next_build(client_from_env(), os.environ.get('IOS_BUNDLE_ID', 'dev.thinqclimate.widget')))
+    elif args.command == 'appstore-profiles':
+        client = Client(str(Path(args.key).expanduser()), args.key_id, args.issuer)
+        certificate = args.certificate_id or distribution_certificate(client)
+        for role, identifier, secret in [('app', args.bundle_id, 'IOS_APP_PROFILE_BASE64'),
+                                         ('widget', args.bundle_id + '.extension', 'IOS_WIDGET_PROFILE_BASE64')]:
+            attributes = create_profile(client, f'ThinQ AppStore {role}', bundle_resource_id(client, identifier), certificate, None, 'IOS_APP_STORE')
+            gh_secret(secret, attributes['profileContent'])
+            print(f'Saved {secret} ({attributes["name"]}, expires {attributes.get("expirationDate", "?")[:10]})')
     elif args.command == 'firebase':
         if not re.fullmatch(r'1:\d+:ios:[0-9a-f]+', args.app_id):
             raise SystemExit('The app ID should look like 1:1234567890:ios:abcdef (Project settings → Your apps)')
