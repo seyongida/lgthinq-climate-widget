@@ -160,14 +160,18 @@ struct HomeStatus: Codable, Equatable {
     private static func number(_ raw: Any?, _ range: ClosedRange<Double>) -> Double? { Reading.sensor(raw, range: range) }
     /// Reads `<prefix>Hour`, `<prefix>Minute` and optional `<prefix>Second`. Out-of-range parts make the value unknown.
     private static func seconds(_ timer: [String: Any], _ prefix: String, suffix: String = "") -> Int? {
-        let hour = number(timer[prefix + "Hour" + suffix], 0...99)
-        let minute = number(timer[prefix + "Minute" + suffix], 0...59)
-        let second = number(timer[prefix + "Second" + suffix], 0...59)
-        let present = [timer[prefix + "Hour" + suffix], timer[prefix + "Minute" + suffix], timer[prefix + "Second" + suffix]].contains { $0 != nil }
-        guard present else { return nil }
-        if (timer[prefix + "Hour" + suffix] != nil && hour == nil) || (timer[prefix + "Minute" + suffix] != nil && minute == nil)
-            || (timer[prefix + "Second" + suffix] != nil && second == nil) { return nil }
-        return Int((hour ?? 0) * 3600 + (minute ?? 0) * 60 + (second ?? 0))
+        // Split into small steps: one long boolean expression times out on older Swift compilers.
+        let parts: [(key: String, range: ClosedRange<Double>, scale: Double)] =
+            [(prefix + "Hour" + suffix, 0...99, 3600), (prefix + "Minute" + suffix, 0...59, 60), (prefix + "Second" + suffix, 0...59, 1)]
+        var total = 0.0
+        var present = false
+        for part in parts {
+            guard let raw = timer[part.key] else { continue }
+            present = true
+            guard let value = number(raw, part.range) else { return nil }
+            total += value * part.scale
+        }
+        return present ? Int(total) : nil
     }
 }
 
@@ -246,14 +250,8 @@ enum HomeCatalog {
         default: return nil
         }
     }
-    static func stateLabel(type: String, state: String) -> String {
-        let noun = doneNoun[type]
-        switch state {
-        case "RUNNING":
-            switch noun { case "세탁": return "세탁 중"; case "건조": return "건조 중"; case "세척": return "세척 중"; case "스타일러 케어": return "케어 중"; default: return "작동 중" }
-        case "END", "COMPLETE", "RUNNING_END", "DONE": return noun.map { ($0 == "스타일러 케어" ? "케어" : $0) + " 완료" } ?? "완료"
-        default:
-            return [
+    // An explicit type keeps older Swift compilers from timing out on this literal.
+    private static let labels: [String: String] = [
                 "RINSING": "헹굼 중", "SPINNING": "탈수 중", "DRYING": "건조 중", "SOAKING": "불림 중", "STEAM_SOFTENING": "스팀 불림 중",
                 "DETECTING": "감지 중", "PREWASH": "애벌 세탁 중", "DISPENSING": "세제 투입 중", "DETERGENT_AMOUNT": "세제량 감지 중",
                 "ADD_DRAIN": "배수 중", "REFRESHING": "리프레시 중", "COOLING": "냉각 중", "WRINKLE_CARE": "건조 완료",
@@ -263,7 +261,16 @@ enum HomeCatalog {
                 "FROZEN_PREVENT_PAUSE": "일시정지", "RESERVED": "예약됨", "STAY": "보관 중", "ERROR": "오류", "POWER_FAIL": "정전 감지",
                 "POWER_OFF": "꺼짐", "INITIAL": "대기", "SLEEP": "대기", "STANDBY": "대기", "FIRMWARE": "업데이트 중", "CANCEL": "취소됨",
                 "FROZEN_PREVENT_INITIAL": "대기", "PREFERENCE": "설정 중", "WORKING": "청소 중", "CHARGING": "충전 중",
-                "CHARGING_COMPLETE": "충전 완료"][state] ?? "작동 중"
+                "CHARGING_COMPLETE": "충전 완료"
+    ]
+    static func stateLabel(type: String, state: String) -> String {
+        let noun = doneNoun[type]
+        switch state {
+        case "RUNNING":
+            switch noun { case "세탁": return "세탁 중"; case "건조": return "건조 중"; case "세척": return "세척 중"; case "스타일러 케어": return "케어 중"; default: return "작동 중" }
+        case "END", "COMPLETE", "RUNNING_END", "DONE": return noun.map { ($0 == "스타일러 케어" ? "케어" : $0) + " 완료" } ?? "완료"
+        default:
+            return labels[state] ?? "작동 중"
         }
     }
 }
