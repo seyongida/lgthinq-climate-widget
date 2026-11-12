@@ -50,6 +50,8 @@ class Stub(BaseHTTPRequestHandler):
         if key == ('GET', '/v1/apps'):
             return self.reply(200, {'data': [{'id': 'app1'}]})
         if key == ('GET', '/v1/builds'):
+            if 'filter[version]' in query:
+                return self.reply(200, {'data': [{'id': 'b6', 'attributes': {'version': query['filter[version]'], 'processingState': 'VALID'}}]})
             return self.reply(200, {'data': [{'id': 'b7', 'attributes': {'version': '7'}}, {'id': 'b6', 'attributes': {'version': '12'}},
                                              {'id': 'bx', 'attributes': {'version': '1.0.1'}}]})
         if key == ('GET', '/v1/betaAppReviewSubmissions'):
@@ -63,6 +65,27 @@ class Stub(BaseHTTPRequestHandler):
                 {'id': '1', 'attributes': {'name': '내 iPhone', 'udid': UDID_KNOWN, 'deviceClass': 'IPHONE', 'status': 'ENABLED'}},
                 {'id': '2', 'attributes': {'name': 'Mac', 'udid': 'B' * 40, 'deviceClass': 'MAC', 'status': 'ENABLED'}},
                 {'id': '3', 'attributes': {'name': 'i|Pad', 'udid': UDID_NEW, 'deviceClass': 'IPAD', 'status': 'ENABLED'}}]})
+        if key == ('GET', '/v1/betaGroups'):
+            return self.reply(200, {'data': [{'id': 'internal', 'attributes': {'isInternalGroup': True}},
+                                             {'id': 'tester', 'attributes': {'isInternalGroup': False}}]})
+        if key == ('GET', '/v1/betaGroups/tester/builds'):
+            return self.reply(200, {'data': [
+                {'id': 'old', 'attributes': {'expired': True, 'expirationDate': '2026-10-01T00:00:00Z'}},
+                {'id': 'b9', 'attributes': {'expired': False, 'expirationDate': '2027-02-10T00:00:00Z'}},
+                {'id': 'b8', 'attributes': {'expired': False, 'expirationDate': '2027-01-10T00:00:00Z'}}]})
+        if key == ('GET', '/v1/betaGroups/internal/builds'):
+            return self.reply(200, {'data': [{'id': 'x', 'attributes': {'expired': False, 'expirationDate': '2030-01-01T00:00:00Z'}}]})
+        if key == ('GET', '/v1/certificates'):
+            return self.reply(200, {'data': [{'id': 'c', 'attributes': {'expirationDate': '2027-11-06T00:00:00Z'}}]})
+        if key == ('GET', '/v1/profiles') and query.get('filter[profileType]') == 'IOS_APP_STORE':
+            return self.reply(200, {'data': [{'id': 'p', 'attributes': {'expirationDate': '2027-10-01T00:00:00Z', 'profileState': 'ACTIVE'}},
+                                             {'id': 'q', 'attributes': {'expirationDate': '2026-01-01T00:00:00Z', 'profileState': 'INVALID'}}]})
+        if key == ('GET', '/v1/builds/b6/betaBuildLocalizations'):
+            return self.reply(200, {'data': []})
+        if key in (('POST', '/v1/betaBuildLocalizations'), ('POST', '/v1/betaGroups/tester/relationships/builds')):
+            return self.reply(201, {'data': {}})
+        if key == ('POST', '/v1/betaAppReviewSubmissions'):
+            return self.reply(201, {'data': {'attributes': {'betaReviewState': 'WAITING_FOR_REVIEW'}}})
         if key == ('POST', '/token'):
             return self.reply(200, {'access_token': 'stub-token'})
         if self.command == 'GET' and url.path.endswith('/groups'):
@@ -226,6 +249,23 @@ class AscTests(unittest.TestCase):
                 asc.check_firebase(key, '1:439215807830:ios:abc', 'friends,family')
             self.assertIn('family', str(group.exception))
 
+    def test_testflight_days_use_the_newest_external_build(self):
+        import datetime
+        now = datetime.datetime(2027, 1, 1, tzinfo=datetime.timezone.utc)
+        self.assertEqual(asc.testflight_days_left(self.client, 'x.y', now), 40)
+        self.assertEqual(asc.testflight_days_left(self.client, 'x.y', datetime.datetime(2027, 3, 1, tzinfo=datetime.timezone.utc)), 0)
+
+    def test_signing_days_use_the_soonest_active_expiry(self):
+        import datetime
+        self.assertEqual(asc.signing_days_left(self.client, datetime.datetime(2027, 9, 1, tzinfo=datetime.timezone.utc)), 30)
+
+    def test_submit_adds_notes_groups_and_review(self):
+        result = asc.submit_to_testers(self.client, 'x.y', '12', '노트', wait_seconds=5, poll=0)
+        self.assertIn('WAITING_FOR_REVIEW', result)
+        posts = [(r[1], r[3]) for r in self.server.state['requests'] if r[0] == 'POST' and r[1] != '/token']
+        self.assertEqual([p for p, _ in posts], ['/v1/betaBuildLocalizations', '/v1/betaGroups/tester/relationships/builds', '/v1/betaAppReviewSubmissions'])
+        self.assertEqual(posts[0][1]['data']['attributes'], {'whatsNew': '노트', 'locale': 'ko'})
+
     def test_next_build_number_follows_the_highest_upload(self):
         self.assertEqual(asc.next_build(self.client, 'x.y'), 13)
 
@@ -260,6 +300,44 @@ class SiteTests(unittest.TestCase):
         self.assertNotIn('itms-services', html)
         self.assertIn('class="pending"', html)
         
+class RenewTests(unittest.TestCase):
+    """Runs renew-testflight.sh with fake asc and gh commands to check its decisions."""
+
+    def run_renew(self, days, signing, running=''):
+        temp = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, temp)
+        (temp / 'scripts').mkdir()
+        (temp / 'scripts/asc.py').write_text(f'import sys\nprint({days} if sys.argv[1] == "testflight-days" else {signing})\n')
+        (temp / 'bin').mkdir()
+        gh = temp / 'bin/gh'
+        gh.write_text(f'#!/bin/bash\necho "$*" >> "{temp}/gh.log"\nif [[ "$1 $2" == "run list" ]]; then printf "%s" "{running}"; fi\n')
+        gh.chmod(0o755)
+        result = subprocess.run(['bash', str(ROOT / 'renew-testflight.sh')], cwd=temp, capture_output=True, text=True,
+                                env={'PATH': f'{temp}/bin:{os.environ["PATH"]}'})
+        log = (temp / 'gh.log').read_text() if (temp / 'gh.log').exists() else ''
+        return result, 'workflow run ios-testflight.yml' in log
+
+    def test_fresh_build_is_left_alone(self):
+        result, started = self.run_renew(60, 300)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertFalse(started)
+
+    def test_expiring_build_is_renewed(self):
+        for days in (20, 3, 0):
+            result, started = self.run_renew(days, 300)
+            self.assertEqual(result.returncode, 0)
+            self.assertTrue(started, days)
+
+    def test_running_upload_is_not_doubled(self):
+        result, started = self.run_renew(5, 300, running='123')
+        self.assertFalse(started)
+
+    def test_signing_expiry_fails_loudly(self):
+        result, started = self.run_renew(60, 25)
+        self.assertEqual(result.returncode, 1)
+        self.assertIn('Signing expires', result.stdout)
+
+
 class WatcherTests(unittest.TestCase):
     """Runs watch-review.sh with fake gh and asc commands to check its decisions."""
 

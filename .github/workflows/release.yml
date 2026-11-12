@@ -88,4 +88,5 @@ jobs:
     uses: ./.github/workflows/ios-testflight.yml
     with:
       build_number: ${{ vars.IOS_BUILD_NUMBER || '' }}
+      notes: ${{ format('Climate Widget {0} 새 버전입니다.', github.ref_name) }}
     secrets: inherit

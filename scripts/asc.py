@@ -189,6 +189,70 @@ def next_build(client, bundle_id):
     return max(numbers, default=0) + 1
 
 
+def parse_date(text):
+    import datetime
+    return datetime.datetime.fromisoformat(text.replace('Z', '+00:00'))
+
+
+def testflight_days_left(client, bundle_id, now=None):
+    """Days until the newest build available to external testers expires, or 0 if none is available."""
+    import datetime
+    now = now or datetime.datetime.now(datetime.timezone.utc)
+    app = client.get('/v1/apps', filter_bundleId=bundle_id, limit=1)[0]['id']
+    best = None
+    for group in client.get('/v1/betaGroups', filter_app=app, limit=50):
+        if group['attributes'].get('isInternalGroup'):
+            continue
+        for build in client.request('GET', f"/v1/betaGroups/{group['id']}/builds", {'limit': 50})['data']:
+            a = build['attributes']
+            if a.get('expired') or not a.get('expirationDate'):
+                continue
+            end = parse_date(a['expirationDate'])
+            best = end if best is None or end > best else best
+    return 0 if best is None else max(0, (best - now).days)
+
+
+def signing_days_left(client, now=None):
+    """Days until the first of the distribution certificates and App Store profiles expires."""
+    import datetime
+    now = now or datetime.datetime.now(datetime.timezone.utc)
+    dates = [parse_date(c['attributes']['expirationDate']) for c in client.get('/v1/certificates', filter_certificateType='DISTRIBUTION', limit=50)
+             if c['attributes'].get('expirationDate')]
+    dates += [parse_date(p['attributes']['expirationDate']) for p in client.get('/v1/profiles', filter_profileType='IOS_APP_STORE', limit=50)
+              if p['attributes'].get('expirationDate') and p['attributes'].get('profileState', 'ACTIVE') == 'ACTIVE']
+    return min((d - now).days for d in dates) if dates else 0
+
+
+def submit_to_testers(client, bundle_id, version, notes, wait_seconds=1800, poll=30):
+    """Waits for a build to finish processing, then adds notes, puts it in every external group and submits it for review."""
+    app = client.get('/v1/apps', filter_bundleId=bundle_id, limit=1)[0]['id']
+    deadline = time.time() + wait_seconds
+    while True:
+        found = client.get('/v1/builds', filter_app=app, filter_version=str(version), limit=5)
+        if found and found[0]['attributes'].get('processingState') == 'VALID':
+            build = found[0]['id']; break
+        if found and found[0]['attributes'].get('processingState') in ('FAILED', 'INVALID'):
+            raise SystemExit(f'Build {version} failed processing at App Store Connect')
+        if time.time() > deadline:
+            raise SystemExit(f'Build {version} is still processing; submit it later')
+        time.sleep(poll)
+    existing = [l for l in client.request('GET', f'/v1/builds/{build}/betaBuildLocalizations')['data'] if l['attributes'].get('locale', '').startswith('ko')]
+    if existing:
+        client.request('PATCH', '/v1/betaBuildLocalizations/' + existing[0]['id'],
+                       body={'data': {'type': 'betaBuildLocalizations', 'id': existing[0]['id'], 'attributes': {'whatsNew': notes}}})
+    else:
+        client.request('POST', '/v1/betaBuildLocalizations', body={'data': {'type': 'betaBuildLocalizations',
+                       'attributes': {'whatsNew': notes, 'locale': 'ko'}, 'relationships': {'build': {'data': {'type': 'builds', 'id': build}}}}})
+    groups = [g for g in client.get('/v1/betaGroups', filter_app=app, limit=50) if not g['attributes'].get('isInternalGroup')]
+    for group in groups:
+        client.request('POST', f"/v1/betaGroups/{group['id']}/relationships/builds", body={'data': [{'type': 'builds', 'id': build}]})
+    if client.get('/v1/betaAppReviewSubmissions', filter_build=build, limit=1):
+        return 'already submitted'
+    result = client.request('POST', '/v1/betaAppReviewSubmissions',
+                            body={'data': {'type': 'betaAppReviewSubmissions', 'relationships': {'build': {'data': {'type': 'builds', 'id': build}}}}})
+    return result['data']['attributes'].get('betaReviewState', 'submitted') + f' ({len(groups)} external group(s))'
+
+
 def distribution_certificate(client):
     found = client.get('/v1/certificates', filter_certificateType='DISTRIBUTION', limit=200)
     if len(found) != 1:
@@ -326,6 +390,11 @@ def main():
     firebase.add_argument('--app-id', required=True, help='Firebase iOS app ID, like 1:1234567890:ios:abcdef')
     firebase.add_argument('--groups', default='friends', help='Comma-separated tester group aliases')
     commands.add_parser('next-build', help='Print the next unused build number (uses the ASC_* environment)')
+    commands.add_parser('testflight-days', help='Print days until the newest external TestFlight build expires')
+    commands.add_parser('signing-days', help='Print days until the distribution certificate or App Store profiles expire')
+    submit = commands.add_parser('testflight-submit', help='Give a processed build to external testers and submit it for review')
+    submit.add_argument('--build', required=True)
+    submit.add_argument('--notes', default='앱을 계속 쓸 수 있도록 새 빌드로 교체했어요. 기능은 이전과 같습니다.')
     store = commands.add_parser('appstore-profiles', help='Create App Store profiles for CI TestFlight uploads and save them')
     store.add_argument('--key', required=True)
     store.add_argument('--key-id', required=True)
@@ -352,6 +421,12 @@ def main():
         print(f'Prepared Ad Hoc profiles for {count} device(s)')
     elif args.command == 'next-build':
         print(next_build(client_from_env(), os.environ.get('IOS_BUNDLE_ID', 'dev.thinqclimate.widget')))
+    elif args.command == 'testflight-days':
+        print(testflight_days_left(client_from_env(), os.environ.get('IOS_BUNDLE_ID', 'dev.thinqclimate.widget')))
+    elif args.command == 'signing-days':
+        print(signing_days_left(client_from_env()))
+    elif args.command == 'testflight-submit':
+        print('Build', args.build + ':', submit_to_testers(client_from_env(), os.environ.get('IOS_BUNDLE_ID', 'dev.thinqclimate.widget'), args.build, args.notes))
     elif args.command == 'appstore-profiles':
         client = Client(str(Path(args.key).expanduser()), args.key_id, args.issuer)
         certificate = args.certificate_id or distribution_certificate(client)

@@ -6,9 +6,17 @@ on:
         description: 'Build number. Leave empty to use one more than the highest uploaded build.'
         required: false
         default: ''
+      notes:
+        description: 'What to Test, shown to testers'
+        required: false
+        default: ''
   workflow_call:
     inputs:
       build_number:
+        type: string
+        required: false
+        default: ''
+      notes:
         type: string
         required: false
         default: ''
@@ -21,6 +29,8 @@ jobs:
   upload:
     # App Store Connect only accepts builds made with Xcode 26 or later.
     runs-on: macos-26
+    outputs:
+      build_number: ${{ steps.upload.outputs.build_number }}
     env:
       IOS_TEAM_ID: ${{ vars.IOS_TEAM_ID }}
       IOS_BUNDLE_ID: ${{ vars.IOS_BUNDLE_ID || 'dev.thinqclimate.widget' }}
@@ -40,4 +50,22 @@ jobs:
       - name: Test Swift core
         run: swift test --package-path ios
       - name: Archive and upload to App Store Connect
+        id: upload
         run: bash scripts/upload-testflight.sh
+  # Waiting for Apple's processing happens on a cheaper Linux runner.
+  submit:
+    needs: upload
+    runs-on: ubuntu-24.04
+    env:
+      IOS_BUNDLE_ID: ${{ vars.IOS_BUNDLE_ID || 'dev.thinqclimate.widget' }}
+      ASC_API_KEY_P8_BASE64: ${{ secrets.ASC_API_KEY_P8_BASE64 }}
+      ASC_API_KEY_ID: ${{ secrets.ASC_API_KEY_ID }}
+      ASC_API_ISSUER_ID: ${{ secrets.ASC_API_ISSUER_ID }}
+      BUILD: ${{ needs.upload.outputs.build_number }}
+      NOTES: ${{ inputs.notes }}
+    steps:
+      - uses: actions/checkout@v5
+      - name: Give the build to external testers and submit it for review
+        run: |
+          if [[ -n "$NOTES" ]]; then python3 scripts/asc.py testflight-submit --build "$BUILD" --notes "$NOTES"
+          else python3 scripts/asc.py testflight-submit --build "$BUILD"; fi

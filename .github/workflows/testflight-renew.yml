@@ -1,0 +1,28 @@
+name: Keep TestFlight builds current
+# TestFlight builds stop working 90 days after upload. Every Monday this checks the newest build that
+# external testers have; with 20 days or less left it uploads a fresh build, which is then submitted for review.
+# It also fails, so GitHub emails the owner, when the signing certificate or App Store profiles expire within 30 days.
+on:
+  schedule:
+    - cron: '0 0 * * 1'
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: write
+concurrency:
+  group: testflight-renew
+  cancel-in-progress: false
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    env:
+      IOS_BUNDLE_ID: ${{ vars.IOS_BUNDLE_ID || 'dev.thinqclimate.widget' }}
+      ASC_API_KEY_P8_BASE64: ${{ secrets.ASC_API_KEY_P8_BASE64 }}
+      ASC_API_KEY_ID: ${{ secrets.ASC_API_KEY_ID }}
+      ASC_API_ISSUER_ID: ${{ secrets.ASC_API_ISSUER_ID }}
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - uses: actions/checkout@v5
+      - name: Check expiry and renew
+        run: bash scripts/renew-testflight.sh

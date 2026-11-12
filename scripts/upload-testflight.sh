@@ -8,6 +8,7 @@ if [[ ! "${IOS_BUILD_NUMBER:-}" =~ ^[0-9]+$ ]] || (( IOS_BUILD_NUMBER < next_bui
 fi
 export IOS_BUILD_NUMBER
 echo "Using build number $IOS_BUILD_NUMBER"
+if [[ -n "${GITHUB_OUTPUT:-}" ]]; then echo "build_number=$IOS_BUILD_NUMBER" >> "$GITHUB_OUTPUT"; fi
 python3 scripts/ios-signing.py --check
 xcode_major=$(xcodebuild -version | sed -n 's/^Xcode \([0-9]*\).*/\1/p')
 (( xcode_major >= 26 )) || { echo "App Store Connect requires Xcode 26 or later" >&2; exit 1; }
