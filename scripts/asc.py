@@ -99,6 +99,18 @@ def review_state(client, bundle_id):
     return 'NONE'
 
 
+def review_latest(client, bundle_id):
+    """(state, build number) of the newest submitted build, or ('NONE', '')."""
+    apps = client.get('/v1/apps', filter_bundleId=bundle_id, limit=1)
+    if not apps:
+        raise SystemExit('No App Store Connect app for ' + bundle_id)
+    for build in client.get('/v1/builds', filter_app=apps[0]['id'], sort='-uploadedDate', limit=10):
+        submissions = client.get('/v1/betaAppReviewSubmissions', filter_build=build['id'], limit=1)
+        if submissions:
+            return submissions[0]['attributes']['betaReviewState'], str(build.get('attributes', {}).get('version', ''))
+    return 'NONE', ''
+
+
 def parse_devices(text):
     """Parse one 'name|udid' per line."""
     devices = []
@@ -378,6 +390,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     commands = parser.add_subparsers(dest='command', required=True)
     commands.add_parser('review-state')
+    commands.add_parser('review-latest', help='Print the newest submitted build review state and its build number')
     commands.add_parser('prepare-adhoc')
     configure = commands.add_parser('setup')
     configure.add_argument('--key', required=True, help='Path to AuthKey_XXXX.p8')
@@ -412,7 +425,9 @@ def main():
     imported.add_argument('--no-build', action='store_true')
     args = parser.parse_args()
 
-    if args.command == 'review-state':
+    if args.command == 'review-latest':
+        print(*review_latest(client_from_env(), os.environ.get('IOS_BUNDLE_ID', 'dev.thinqclimate.widget')))
+    elif args.command == 'review-state':
         print(review_state(client_from_env(), os.environ.get('IOS_BUNDLE_ID', 'dev.thinqclimate.widget')))
     elif args.command == 'prepare-adhoc':
         count = prepare_adhoc(client_from_env(), os.environ['IOS_SIGNING_DIR'], os.environ['IOS_TEAM_ID'],

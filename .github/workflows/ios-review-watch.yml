@@ -7,6 +7,7 @@ on:
 permissions:
   contents: read
   actions: write
+  issues: write
 concurrency:
   group: ios-review-watch
   cancel-in-progress: false
@@ -21,6 +22,8 @@ jobs:
       HAS_DEVICES: ${{ secrets.IOS_ADHOC_DEVICES != '' }}
       HAS_CERTIFICATE: ${{ secrets.IOS_DISTRIBUTION_CERT_ID != '' }}
       HAS_FIREBASE: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_BASE64 != '' && vars.FIREBASE_IOS_APP_ID != '' }}
+      IOS_TESTFLIGHT_URL: ${{ vars.IOS_TESTFLIGHT_URL }}
+      OWNER: ${{ github.repository_owner }}
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ${{ github.repository }}
     steps:

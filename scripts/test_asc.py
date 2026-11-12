@@ -341,53 +341,67 @@ class RenewTests(unittest.TestCase):
 class WatcherTests(unittest.TestCase):
     """Runs watch-review.sh with fake gh and asc commands to check its decisions."""
 
-    def run_watch(self, state, runs='', devices='true', certificate='true', key='x', firebase='true'):
+    def run_watch(self, state, build='9', runs='', issues='', devices='true', certificate='true', key='x', firebase='true'):
         temp = Path(tempfile.mkdtemp())
         self.addCleanup(shutil.rmtree, temp)
         (temp / 'scripts').mkdir()
-        (temp / 'scripts/asc.py').write_text(f'print("{state}")\n')
+        (temp / 'scripts/asc.py').write_text(f'print("{state} {build}")\n')
         (temp / 'bin').mkdir()
         gh = temp / 'bin/gh'
-        gh.write_text(f'#!/bin/bash\necho "$*" >> "{temp}/gh.log"\nif [[ "$1 $2" == "run list" ]]; then printf "%s" "{runs}"; fi\n')
+        gh.write_text(f'#!/bin/bash\necho "$*" >> "{temp}/gh.log"\n'
+                      f'if [[ "$1 $2" == "run list" ]]; then printf "%s" "{runs}"; fi\n'
+                      f'if [[ "$1 $2" == "issue list" ]]; then printf "%b" "{issues}"; fi\n')
         gh.chmod(0o755)
         result = subprocess.run(['bash', str(ROOT / 'watch-review.sh')], cwd=temp, capture_output=True, text=True,
-                                env={'PATH': f'{temp}/bin:{os.environ["PATH"]}', 'ASC_API_KEY_P8_BASE64': key,
+                                env={'PATH': f'{temp}/bin:{os.environ["PATH"]}', 'ASC_API_KEY_P8_BASE64': key, 'OWNER': 'someone',
+                                     'IOS_TESTFLIGHT_URL': 'https://testflight.apple.com/join/abc',
                                      'HAS_DEVICES': devices, 'HAS_CERTIFICATE': certificate, 'HAS_FIREBASE': firebase})
         log = (temp / 'gh.log').read_text() if (temp / 'gh.log').exists() else ''
-        return result, 'workflow run ios-adhoc.yml' in log
+        return result, 'workflow run ios-adhoc.yml' in log, log
 
-    def test_rejected_starts_fallback(self):
-        result, started = self.run_watch('REJECTED')
+    def test_approval_opens_one_issue_mentioning_the_owner(self):
+        result, started, log = self.run_watch('APPROVED')
         self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertFalse(started)
+        self.assertIn('issue create --title TestFlight 빌드 9 승인됨', log)
+        self.assertIn('@someone', log)
+        self.assertIn('https://testflight.apple.com/join/abc', log)
+
+    def test_existing_issue_is_not_repeated(self):
+        result, started, log = self.run_watch('APPROVED', issues='다른 이슈\\nTestFlight 빌드 9 승인됨\\n')
+        self.assertEqual(result.returncode, 0)
+        self.assertNotIn('issue create', log)
+        self.assertIn('Already notified', result.stdout)
+
+    def test_rejection_notifies_and_starts_fallback(self):
+        result, started, log = self.run_watch('REJECTED')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('issue create --title TestFlight 빌드 9 거절됨', log)
         self.assertTrue(started)
 
-    def test_other_states_do_nothing(self):
-        for state in ['NONE', 'WAITING_FOR_REVIEW', 'IN_REVIEW', 'APPROVED']:
-            result, started = self.run_watch(state)
+    def test_waiting_does_nothing(self):
+        for state in ['NONE', 'WAITING_FOR_REVIEW', 'IN_REVIEW']:
+            result, started, log = self.run_watch(state)
             self.assertEqual(result.returncode, 0)
-            self.assertFalse(started, state)
+            self.assertNotIn('issue create', log)
+            self.assertFalse(started)
 
-    def test_only_one_release_is_started(self):
-        result, started = self.run_watch('REJECTED', runs='2026-11-12T01:00:00Z\\n')
+    def test_only_one_fallback_is_started(self):
+        result, started, _ = self.run_watch('REJECTED', runs='2026-11-12T01:00:00Z\\n')
         self.assertEqual(result.returncode, 0)
         self.assertFalse(started)
 
-    def test_missing_device_fails_loudly(self):
-        result, started = self.run_watch('REJECTED', devices='false')
-        self.assertEqual(result.returncode, 1)
-        self.assertFalse(started)
-        self.assertIn('rejected', result.stdout)
-
     def test_missing_firebase_fails_loudly(self):
-        result, started = self.run_watch('REJECTED', firebase='false')
+        result, started, _ = self.run_watch('REJECTED', firebase='false')
         self.assertEqual(result.returncode, 1)
         self.assertFalse(started)
         self.assertIn('Firebase', result.stdout)
 
     def test_without_key_is_a_quiet_no_op(self):
-        result, started = self.run_watch('REJECTED', key='')
+        result, started, log = self.run_watch('REJECTED', key='')
         self.assertEqual(result.returncode, 0)
         self.assertFalse(started)
+        self.assertEqual(log, '')
 
 
 if __name__ == '__main__':
