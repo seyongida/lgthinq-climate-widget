@@ -39,13 +39,18 @@ public class WidgetLayoutTest {
         for(android.appwidget.AppWidgetProviderInfo info:manager.getInstalledProviders()) {
             if(!info.provider.getPackageName().equals(context.getPackageName()))continue;
             assertEquals(android.appwidget.AppWidgetProviderInfo.RESIZE_BOTH,info.resizeMode);
+            if(info.provider.getClassName().endsWith("CycleWidget")) {
+                // Countdowns need two cells of width; one row of height still fits a program.
+                if(android.os.Build.VERSION.SDK_INT>=31){assertEquals(2,info.targetCellWidth);assertEquals(1,info.targetCellHeight);}
+                assertTrue(info.minResizeHeight<=Ui.dp(context,56));found++;continue;
+            }
             if(android.os.Build.VERSION.SDK_INT>=31) {
                 assertEquals(info.provider.getClassName().endsWith("HorizontalClimateWidget")?2:1,info.targetCellWidth);
                 assertEquals(info.provider.getClassName().endsWith("PairClimateWidget")?2:1,info.targetCellHeight);
             }
             assertTrue(info.minResizeWidth<=Ui.dp(context,56));assertTrue(info.minResizeHeight<=Ui.dp(context,56));found++;
         }
-        assertEquals(3,found);
+        assertEquals(4,found);
     }
     @Test public void compactValuesFitOneCell() {
         InstrumentationRegistry.getInstrumentation().runOnMainSync(()->{

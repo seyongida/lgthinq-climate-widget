@@ -1,0 +1,41 @@
+{
+ "humidifierJobMode": {
+  "currentJobMode": "HUMIDIFY"
+ },
+ "operation": {
+  "humidifierOperationMode": "POWER_ON",
+  "autoMode": "AUTO_ON",
+  "sleepMode": "SLEEP_OFF",
+  "hygieneDryMode": "NORMAL"
+ },
+ "timer": {
+  "absoluteStartTimer": "UNSET",
+  "absoluteStopTimer": "UNSET"
+ },
+ "sleepTimer": {
+  "relativeStopTimer": "UNSET"
+ },
+ "humidity": {
+  "targetHumidity": 50,
+  "warmMode": "WARM_ON"
+ },
+ "airFlow": {
+  "windStrength": "AUTO"
+ },
+ "airQualitySensor": {
+  "PM1": 6,
+  "PM2": 8,
+  "PM10": 10,
+  "humidity": 63,
+  "temperature": 21,
+  "totalPollution": 1,
+  "monitoringEnabled": "ALWAYS",
+  "totalPollutionLevel": "GOOD"
+ },
+ "display": {
+  "light": "LEVEL_1"
+ },
+ "moodLamp": {
+  "moodLampState": "OFF"
+ }
+}

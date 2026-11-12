@@ -1,0 +1,16 @@
+[
+ {
+  "runState": {
+   "currentState": "ERROR"
+  },
+  "timer": {
+   "remainHour": 0,
+   "remainMinute": 40,
+   "totalHour": 0,
+   "totalMinute": 58
+  },
+  "location": {
+   "locationName": "MAIN"
+  }
+ }
+]

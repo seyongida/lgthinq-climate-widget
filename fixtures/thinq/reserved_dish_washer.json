@@ -1,0 +1,16 @@
+{
+ "doorStatus": {
+  "doorState": "CLOSE"
+ },
+ "timer": {
+  "remainHour": 0,
+  "remainMinute": 0,
+  "totalHour": 2,
+  "totalMinute": 20,
+  "relativeHourToStart": 3,
+  "relativeMinuteToStart": 30
+ },
+ "runState": {
+  "currentState": "RESERVED"
+ }
+}

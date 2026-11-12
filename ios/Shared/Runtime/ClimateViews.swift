@@ -33,13 +33,7 @@ enum ClimateFormat {
         if reading.stale(at: now) { return "오래됨 ↻" }
         return (DemoData.isDemo(device.id) ? "샘플 " : "") + time(reading.fetchedAt) + " ↻"
     }
-    static func symbol(_ device: ThinQDevice) -> String {
-        switch device.type {
-        case "DEVICE_AIR_PURIFIER": return "wind"
-        case "DEVICE_AIR_PURIFIER_FAN": return "fan.fill"
-        default: return "humidity.fill"
-        }
-    }
+    static func symbol(_ device: ThinQDevice) -> String { HomeIcon.symbol(device.type) }
     static func needsAttention(state: DeviceState?, now: Date) -> Bool {
         if let error = state?.error, !error.isEmpty { return true }
         return state?.reading?.stale(at: now) ?? false

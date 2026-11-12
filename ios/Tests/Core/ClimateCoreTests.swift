@@ -56,17 +56,18 @@ final class ClimateCoreTests: XCTestCase {
     func testDeviceFilteringMatchesAndroid() throws {
         let list: [[String: Any]] = [
             ["deviceId": "a", "deviceInfo": ["deviceType": "DEVICE_HUMIDIFIER", "alias": "거실"]],
-            ["deviceId": "b", "deviceInfo": ["deviceType": "DEVICE_DEHUMIDIFIER"]],
+            ["deviceId": "b", "deviceInfo": ["deviceType": "DEVICE_WASHER", "alias": "트롬"]],
+            ["deviceId": "x", "deviceInfo": ["deviceType": "NOT_A_DEVICE"]],
             ["deviceId": "c", "deviceInfo": ["deviceType": "DEVICE_HUMIDIFIER", "alias": "  "]],
             ["deviceId": "d", "deviceInfo": ["deviceType": "DEVICE_AIR_PURIFIER"]],
             ["deviceId": "e", "deviceInfo": ["deviceType": "DEVICE_AIR_PURIFIER_FAN", "alias": "안방"]],
             ["deviceId": "a", "deviceInfo": ["deviceType": "DEVICE_HUMIDIFIER", "alias": "중복"]],
             ["deviceInfo": ["deviceType": "DEVICE_HUMIDIFIER"]]]
         let devices = try ThinQDevice.parse(list)
-        XCTAssertEqual(devices, [ThinQDevice(id: "a", name: "거실"), ThinQDevice(id: "c", name: "가습기"),
+        XCTAssertEqual(devices, [ThinQDevice(id: "a", name: "거실"), ThinQDevice(id: "b", name: "트롬", type: "DEVICE_WASHER"), ThinQDevice(id: "c", name: "가습기"),
                                  ThinQDevice(id: "d", name: "공기청정기", type: "DEVICE_AIR_PURIFIER"),
                                  ThinQDevice(id: "e", name: "안방", type: "DEVICE_AIR_PURIFIER_FAN")])
-        XCTAssertEqual(devices.map(\.typeName), ["가습기", "가습기", "공기청정기", "공기청정 팬"])
+        XCTAssertEqual(devices.map(\.typeName), ["가습기", "세탁기", "가습기", "공기청정기", "공기청정 팬"])
         XCTAssertThrowsError(try ThinQDevice.parse([:]))
     }
     func testCompactFormatMatchesAndroidWidget() {

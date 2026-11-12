@@ -35,7 +35,7 @@ public final class WidgetConfigActivity extends Activity {
         int width=options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH,horizontal?188:82);
         int height=options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT,paired&&!horizontal?192:96);
         if(width>=120||height>=120){paired=true;horizontal=width>height;}
-        store=new Store(this);devices=store.devices();style=store.widgetStyle(widgetId);
+        store=new Store(this);devices=store.climateDevices();style=store.widgetStyle(widgetId);
         if(saved!=null)style=WidgetStyle.decode(saved.getString("appearance",style.encode()));
         LinearLayout outer=Ui.column(this);ScrollView scroll=new ScrollView(this);outer.addView(scroll);Ui.window(this,outer);
         LinearLayout content=Ui.column(this);content.setPadding(Ui.dp(this,24),Ui.dp(this,22),Ui.dp(this,24),Ui.dp(this,28));scroll.addView(content);

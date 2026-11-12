@@ -5,6 +5,11 @@ struct DeviceState: Codable, Equatable {
     var reading: Reading?
     var error: String?
     var attemptedAt: Date?
+    var status: HomeStatus?
+}
+extension ThinQDevice {
+    /// Devices that can report indoor temperature or humidity. Unknown types qualify once they report a value.
+    func isClimate(_ state: DeviceState?) -> Bool { HomeCatalog.climateTypes.contains(type) || state?.status?.hasClimate == true }
 }
 struct ClimateStore {
     // Both targets expand these from the same build settings.
@@ -44,8 +49,20 @@ struct ClimateStore {
         store(states().filter { ids.contains($0.key) }, "states")
     }
     func catalog() -> [ThinQDevice] { load("catalog") ?? [] }
-    func setCatalog(_ devices: [ThinQDevice]) { store(devices, "catalog") }
+    /// Version 2 lists every device type, not only climate devices.
+    static let catalogVersion = 2
+    var catalogIsCurrent: Bool { defaults.integer(forKey: "catalogVersion") >= Self.catalogVersion }
+    func setCatalog(_ devices: [ThinQDevice]) { store(devices, "catalog"); defaults.set(Self.catalogVersion, forKey: "catalogVersion") }
+    var liveActivitiesEnabled: Bool {
+        get { defaults.object(forKey: "liveActivities") as? Bool ?? true }
+        nonmutating set { defaults.set(newValue, forKey: "liveActivities") }
+    }
     func states() -> [String: DeviceState] { load("states") ?? [:] }
+    func energy() -> [String: EnergyUsage] { load("energy") ?? [:] }
+    func setEnergy(_ value: [String: EnergyUsage]) { store(value, "energy") }
+    /// Devices or tokens that cannot report energy, and when to ask again.
+    func energySkip() -> [String: Date] { load("energySkip") ?? [:] }
+    func setEnergySkip(_ value: [String: Date]) { store(value, "energySkip") }
     func state(for id: String) -> DeviceState { states()[id] ?? DeviceState() }
     func write(_ state: DeviceState, for id: String) {
         var all = states()
@@ -59,7 +76,7 @@ struct ClimateStore {
     }
     private func clearCache() {
         // "snapshot" is the single-device format used by earlier builds.
-        for key in ["devices", "catalog", "states", "snapshot"] { defaults.removeObject(forKey: key) }
+        for key in ["devices", "catalog", "catalogVersion", "states", "snapshot", "energy", "energySkip"] { defaults.removeObject(forKey: key) }
     }
     private func load<T: Decodable>(_ key: String) -> T? {
         guard let data = defaults.data(forKey: key) else { return nil }

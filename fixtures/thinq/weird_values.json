@@ -1,0 +1,15 @@
+{
+ "airQualitySensor": {
+  "temperature": true,
+  "humidity": "55",
+  "PM2": -3,
+  "totalPollutionLevel": "INVALID"
+ },
+ "runState": {
+  "currentState": "SOMETHING_NEW"
+ },
+ "timer": {
+  "remainHour": -1,
+  "remainMinute": 70
+ }
+}

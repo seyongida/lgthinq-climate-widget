@@ -28,8 +28,8 @@ GitHub Actions 저장소 Secrets:
 버전 번호를 `android/app/build.gradle.kts`와 `ios/project.yml`에서 변경하고 검사한 뒤 태그를 게시합니다.
 
 ```sh
-git tag v1.4.0
-git push origin v1.4.0
+git tag v1.5.0
+git push origin v1.5.0
 ```
 
 `Publish Android release`는 코어/Release 단위 테스트/lint → APK 빌드 → 공개 자격 증명/버전/서명 검사 → GitHub Releases 게시 순서로 실행합니다. 게시 파일은 `ThinQ-Climate.apk`, `SHA256SUMS`, `SIGNING_CERTIFICATE.txt`, `INSTALL.md`입니다. 같은 릴리즈를 덮어쓰지 않으며 수정은 새 버전 태그로 배포합니다.

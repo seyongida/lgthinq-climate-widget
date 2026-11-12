@@ -43,6 +43,11 @@ public final class Climate {
                 "x-message-id", Base64.getUrlEncoder().withoutPadding().encodeToString(bytes),
                 "x-api-key", PUBLIC_CLIENT_KEY, "x-service-phase", "OP", "Accept", "application/json");
         }
+        /** Daily electricity use for one device. Dates are yyyyMMdd. */
+        public URI energyEndpoint(String id, String start, String end) {
+            return URI.create("https://api-" + region + ".lgthinq.com/devices/energy/" + URLEncoder.encode(id, StandardCharsets.UTF_8).replace("+", "%20")
+                + "/usage?property=energyUsage&period=DAILY&startDate=" + start.replaceAll("[^0-9]", "") + "&endDate=" + end.replaceAll("[^0-9]", ""));
+        }
         public URI endpoint(String id) {
             String path = id == null ? "devices" : "devices/" + URLEncoder.encode(id, StandardCharsets.UTF_8).replace("+", "%20") + "/state";
             return URI.create("https://api-" + region + ".lgthinq.com/" + path);
@@ -50,13 +55,7 @@ public final class Climate {
     }
     public record Device(String id, String name, String type) {
         public Device(String id, String name) { this(id, name, "DEVICE_HUMIDIFIER"); }
-        public String typeName() {
-            return switch (type) {
-                case "DEVICE_AIR_PURIFIER" -> "공기청정기";
-                case "DEVICE_AIR_PURIFIER_FAN" -> "공기청정 팬";
-                default -> "가습기";
-            };
-        }
+        public String typeName() { return Home.name(type); }
     }
     public record Reading(Double temperature, Double humidity, long fetchedAt) {
         public boolean stale(long now) { return now < fetchedAt || now - fetchedAt >= STALE_MS; }
@@ -85,19 +84,21 @@ public final class Climate {
             Object infoRaw = m.get("deviceInfo");
             Map<?,?> info = infoRaw instanceof Map<?,?> i ? i : Map.of();
             String type = String.valueOf(info.get("deviceType"));
-            if (!Set.of("DEVICE_HUMIDIFIER", "DEVICE_AIR_PURIFIER", "DEVICE_AIR_PURIFIER_FAN").contains(type)) continue;
+            if (!type.startsWith("DEVICE_")) continue;
             if (!(m.get("deviceId") instanceof String id) || id.isBlank()) continue;
             Object alias = info.get("alias");
-            String fallback = type.equals("DEVICE_HUMIDIFIER") ? "가습기" : "공기청정기";
+            String fallback = Home.name(type);
             if (result.stream().noneMatch(d -> d.id().equals(id)))
                 result.add(new Device(id, alias instanceof String s && !s.isBlank() ? s : fallback, type));
         }
         return List.copyOf(result);
     }
     public static String error(int status, String code) {
+        if (Set.of("1305", "1309").contains(code)) return "이 토큰에 허용되지 않은 기능입니다.";
         if (status == 401 || Set.of("1103", "1218", "1302").contains(code)) return "인증 만료 · 연결 설정을 갱신해 주세요.";
         if (status == 429 || "1306".equals(code)) return "요청 한도 초과 · 잠시 후 다시 시도합니다.";
         if ("1222".equals(code)) return "기기 오프라인 · 마지막 수신값입니다.";
+        if (Set.of("1219", "1220", "1221").contains(code)) return "이 모델은 지원하지 않는 기능입니다.";
         if (status == 403) return "접근 거부 · PAT 읽기 권한과 국가/지역을 확인해 주세요.";
         return "연결 실패 · 네트워크와 기기 상태를 확인해 주세요.";
     }

@@ -1,0 +1,16 @@
+{
+ "runState": {
+  "currentState": "POWER_OFF"
+ },
+ "remoteControlEnable": {
+  "remoteControlEnabled": false
+ },
+ "timer": {
+  "remainHour": 0,
+  "remainMinute": 0,
+  "relativeHourToStop": 0,
+  "relativeMinuteToStop": 0,
+  "totalHour": 0,
+  "totalMinute": 0
+ }
+}

@@ -79,7 +79,7 @@ final class Store {
             config(config);
             SharedPreferences.Editor edit=prefs.edit();
             for(String key:prefs.getAll().keySet())
-                if(key.startsWith("reading:") || key.startsWith("error:") || key.startsWith("attempt:"))edit.remove(key);
+                if(key.startsWith("reading:") || key.startsWith("error:") || key.startsWith("attempt:") || key.startsWith("state:") || key.startsWith("energy"))edit.remove(key);
             edit.commit();
             catalog(discovered);
             selectDevices(discovered);
@@ -108,7 +108,59 @@ final class Store {
         catch (JSONException e) { throw new IllegalArgumentException("기기 저장 실패", e); }
         return a.toString();
     }
-    void catalog(List<Climate.Device> devices) { prefs.edit().putString("catalog", encodeDevices(devices)).commit(); }
+    void catalog(List<Climate.Device> devices) { prefs.edit().putString("catalog", encodeDevices(devices)).putInt("catalogVersion", CATALOG_VERSION).commit(); }
+    /** Version 2 lists every device type, not only climate devices. */
+    static final int CATALOG_VERSION = 2;
+    boolean catalogIsCurrent() { return prefs.getInt("catalogVersion", 0) >= CATALOG_VERSION; }
+    void energy(String id, dev.thinqclimate.core.Energy.Usage u) throws JSONException {
+        JSONObject o = new JSONObject().put("current",u.current()).put("label",u.label()).put("compare",u.compareLabel()).put("at",u.fetchedAt());
+        if (u.previous() != null) o.put("previous",u.previous());
+        prefs.edit().putString(key("energy",id),o.toString()).commit();
+    }
+    dev.thinqclimate.core.Energy.Usage energy(String id) {
+        try {
+            JSONObject o = new JSONObject(prefs.getString(key("energy",id),"{}"));
+            if (!o.has("current")) return null;
+            return new dev.thinqclimate.core.Energy.Usage(o.getInt("current"), o.has("previous") ? o.getInt("previous") : null, o.getString("label"), o.getString("compare"), o.getLong("at"));
+        } catch (JSONException e) { return null; }
+    }
+    void clearEnergy(String id) { prefs.edit().remove(key("energy",id)).commit(); }
+    long energySkip(String id) { return prefs.getLong(key("energySkip",id),0); }
+    void energySkip(String id, long until) { prefs.edit().putLong(key("energySkip",id),until).commit(); }
+    boolean liveUpdates() { return prefs.getBoolean("liveUpdates", true); }
+    void liveUpdates(boolean on) { prefs.edit().putBoolean("liveUpdates", on).commit(); }
+    boolean notificationAsked() { return prefs.getBoolean("notificationAsked", false); }
+    void notificationAsked(boolean asked) { prefs.edit().putBoolean("notificationAsked", asked).commit(); }
+    Set<String> shownCycles() { return new HashSet<>(prefs.getStringSet("shownCycles", Set.of())); }
+    void shownCycles(Set<String> keys) { prefs.edit().putStringSet("shownCycles", new HashSet<>(keys)).commit(); }
+    /** Stores the raw state; climate readings are kept alongside for the climate widgets. */
+    void status(String id, Object rawState, long at) throws JSONException {
+        Climate.Device d = device(id);
+        dev.thinqclimate.core.Home.Status s = dev.thinqclimate.core.Home.parse(rawState, d == null ? "" : d.type(), at);
+        SharedPreferences.Editor e = prefs.edit().putString(key("state",id), new JSONObject().put("at",at).put("raw",ThinQ.json(rawState)).toString()).remove(key("error",id));
+        if (s.hasClimate()) e.putString(key("reading",id), new JSONObject().put("t",s.temperature()).put("h",s.humidity()).put("at",at).toString());
+        e.commit();
+    }
+    dev.thinqclimate.core.Home.Status status(String id) {
+        Climate.Device d = device(id);
+        try {
+            JSONObject o = new JSONObject(prefs.getString(key("state",id),"{}"));
+            if (d == null || !o.has("raw")) return null;
+            return dev.thinqclimate.core.Home.parse(ThinQ.parseJson(o.getString("raw")), d.type(), o.getLong("at"));
+        } catch (JSONException e) { return null; }
+    }
+    boolean isClimate(Climate.Device d) {
+        if (dev.thinqclimate.core.Home.CLIMATE_TYPES.contains(d.type())) return true;
+        dev.thinqclimate.core.Home.Status s = status(d.id()); return s != null && s.hasClimate();
+    }
+    List<Climate.Device> climateDevices() { List<Climate.Device> r = new ArrayList<>(); for (Climate.Device d : devices()) if (isClimate(d)) r.add(d); return r; }
+    boolean acceptStatus(String generation, String id, Object rawState, long at, String error) throws JSONException {
+        synchronized (RefreshWorker.LOCK) {
+            if (!generation.equals(generation()) || device(id) == null) return false;
+            if (rawState != null) status(id, rawState, at); else error(id, error);
+            return true;
+        }
+    }
     void selectDevices(List<Climate.Device> selected) {
         synchronized (RefreshWorker.LOCK) {
             LinkedHashMap<String,Climate.Device> unique = new LinkedHashMap<>();
@@ -116,7 +168,7 @@ final class Store {
             SharedPreferences.Editor e = prefs.edit().putString("devices", encodeDevices(new ArrayList<>(unique.values())))
                 .putString("generation",UUID.randomUUID().toString());
             for (Climate.Device old : devices()) if (!unique.containsKey(old.id())) {
-                e.remove(key("reading",old.id())).remove(key("error",old.id())).remove(key("attempt",old.id()));
+                e.remove(key("reading",old.id())).remove(key("error",old.id())).remove(key("attempt",old.id())).remove(key("state",old.id()));
             }
             e.commit();
         }
@@ -147,7 +199,7 @@ final class Store {
     List<String> widgetDevices(int widgetId, int capacity) {
         List<String> ids = new ArrayList<>();
         if (!prefs.contains("widget:"+widgetId)) {
-            for (Climate.Device d : devices()) { if(ids.size() == capacity) break; ids.add(d.id()); }
+            for (Climate.Device d : climateDevices()) { if(ids.size() == capacity) break; ids.add(d.id()); }
         } else try {
             JSONArray a = new JSONArray(prefs.getString("widget:"+widgetId,"[]"));
             for(int i=0;i<a.length() && ids.size()<capacity;i++) {

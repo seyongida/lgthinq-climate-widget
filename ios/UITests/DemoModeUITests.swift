@@ -14,8 +14,15 @@ final class DemoModeUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["체험용 공기청정기"].exists)
         XCTAssertTrue(start.waitForNonExistence(timeout: 5))
         attach(app, "2-home")
-
-        for _ in 0..<4 where !app.buttons["tileSmall"].isHittable { app.swipeUp() }
+        // The sample washer is always mid-cycle and the sample dryer has finished.
+        XCTAssertTrue(app.descendants(matching: .any)["cycle"].firstMatch.waitForExistence(timeout: 5), "A running appliance should be listed")
+        XCTAssertTrue(app.staticTexts["건조가 끝났어요"].exists || app.descendants(matching: .any)["alerts"].exists, "The finished dryer should ask for attention")
+        app.swipeUp()
+        attach(app, "3-home-middle")
+        for _ in 0..<3 where !app.descendants(matching: .any)["energy"].firstMatch.exists { app.swipeUp() }
+        XCTAssertTrue(app.descendants(matching: .any)["energy"].firstMatch.waitForExistence(timeout: 10), "Sample energy use should appear")
+        attach(app, "3-home-energy")
+        for _ in 0..<5 where !app.buttons["tileSmall"].isHittable { app.swipeUp() }
         attach(app, "3-home-bottom")
         app.buttons["tileSmall"].tap()
         let close = app.buttons["closeGuide"]
@@ -50,6 +57,46 @@ final class DemoModeUITests: XCTestCase {
         for _ in 0..<6 where !start.isHittable { app.swipeDown() }
         XCTAssertTrue(start.waitForExistence(timeout: 10))
         XCTAssertFalse(notice.exists)
+    }
+    /// Manual QA only: tours an app already launched with a real account. Skipped unless REAL_TOUR is set.
+    @MainActor func testRealAccountTour() throws {
+        guard ProcessInfo.processInfo.environment["REAL_TOUR"] == "1" else { throw XCTSkip("Real account tour is manual") }
+        let app = XCUIApplication()
+        app.activate()
+        XCTAssertTrue(app.buttons["openSettings"].waitForExistence(timeout: 10))
+        for index in 0..<7 {
+            attach(app, "8-real-\(index)")
+            app.swipeUp()
+        }
+    }
+    /// Shows the Lock Screen so the Live Activity can be inspected. Uses the simulator's lock button.
+    @MainActor func testLiveActivityOnLockScreen() throws {
+        let app = XCUIApplication()
+        app.launch()
+        let start = app.buttons["startDemo"]
+        if start.waitForExistence(timeout: 10) { start.tap() }
+        XCTAssertTrue(app.descendants(matching: .any)["cycle"].firstMatch.waitForExistence(timeout: 10))
+        let device = XCUIDevice.shared
+        let lock = NSSelectorFromString("pressLockButton")
+        guard device.responds(to: lock) else { throw XCTSkip("Lock button is not available") }
+        device.perform(lock)
+        sleep(2)
+        device.press(.home)
+        sleep(2)
+        // First use asks whether to allow Live Activities from this app.
+        let allow = XCUIApplication(bundleIdentifier: "com.apple.springboard").buttons["허용"]
+        if allow.waitForExistence(timeout: 3) { allow.tap() }
+        sleep(3)
+        let shot = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
+        shot.name = "7-lock-screen"; shot.lifetime = .keepAlways; add(shot)
+        // Leave the simulator unlocked and the sample cleared for the next run.
+        device.press(.home); sleep(1); device.press(.home)
+        app.activate()
+        app.buttons["openSettings"].tap()
+        let end = app.buttons["disconnect"]
+        XCTAssertTrue(end.waitForExistence(timeout: 5))
+        for _ in 0..<6 where !end.isHittable { app.swipeUp() }
+        end.tap()
     }
     @MainActor private func attach(_ app: XCUIApplication, _ name: String) {
         let attachment = XCTAttachment(screenshot: app.screenshot())

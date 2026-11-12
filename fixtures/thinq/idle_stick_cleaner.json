@@ -1,0 +1,10 @@
+{
+ "runState": {
+  "currentState": "CHARGING_COMPLETE",
+  "currentStateDetail": "CHARGING_COMPLETE"
+ },
+ "stickCleanerJobMode": {
+  "currentJobMode": "OFF",
+  "currentJobModeDetail": "OFF"
+ }
+}

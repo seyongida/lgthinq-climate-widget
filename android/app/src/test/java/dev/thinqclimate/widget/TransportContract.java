@@ -33,7 +33,7 @@ public final class TransportContract {
         check(f.getConnectTimeout()==15000 && f.getReadTimeout()==15000,"timeouts");check(!f.getInstanceFollowRedirects(),"redirect rejected");
         check(f.getRequestProperty("Authorization").equals("Bearer test-only"),"auth");check(f.getRequestProperty("x-country").equals("KR"),"country");check(f.getRequestProperty("x-client-id").equals("test-client"),"client id");check(f.getRequestProperty("x-service-phase").equals("OP"),"phase");check(f.getRequestProperty("x-message-id").length()==22,"message id");
         var list=new Fake(CONFIG.endpoint(null).toURL(),"{\"response\":[{\"deviceId\":\"one\",\"deviceInfo\":{\"deviceType\":\"DEVICE_HUMIDIFIER\",\"alias\":\"거실\"}},{\"deviceId\":\"two\",\"deviceInfo\":{\"deviceType\":\"DEVICE_WASHER\"}}]}",200);
-        check(new ThinQ(CONFIG,u->list).devices().equals(List.of(new Climate.Device("one","거실"))),"list decoding and filtering");
+        check(new ThinQ(CONFIG,u->list).devices().equals(List.of(new Climate.Device("one","거실"),new Climate.Device("two","세탁기","DEVICE_WASHER"))),"list decoding includes appliances with type-name fallback");
         for(String sensors:List.of("{}","{\"humidity\":null,\"temperature\":null}","{\"humidity\":true,\"temperature\":\"23\"}","{\"humidity\":101,\"temperature\":999}")) {
             var invalid=new Fake(CONFIG.endpoint("test").toURL(),"{\"response\":{\"airQualitySensor\":"+sensors+"}}",200);
             var missing=new ThinQ(CONFIG,u->invalid).reading("test");check(missing.temperature()==null && missing.humidity()==null,"invalid/missing sensors");

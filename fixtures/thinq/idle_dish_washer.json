@@ -1,0 +1,26 @@
+{
+ "preference": {
+  "cleanLReminder": "CLEANLREMINDER_OFF",
+  "mCReminder": "MCREMINDER_OFF",
+  "rinseLevel": "RINSELEVEL_2",
+  "signalLevel": "SIGNALLEVEL_ON",
+  "softeningLevel": "SOFTENINGLEVEL_0"
+ },
+ "doorStatus": {
+  "doorState": "OPEN"
+ },
+ "timer": {
+  "totalHour": 0,
+  "totalMinute": 0,
+  "remainHour": 0,
+  "remainMinute": 0,
+  "relativeHourToStart": 0,
+  "relativeMinuteToStart": 0
+ },
+ "runState": {
+  "currentState": "POWER_OFF"
+ },
+ "dishWashingStatus": {
+  "rinseRefill": false
+ }
+}

@@ -1,0 +1,19 @@
+[
+ {
+  "runState": {
+   "currentState": "COOKING_IN_PROGRESS"
+  },
+  "location": {
+   "locationName": "OVEN"
+  },
+  "temperature": {
+   "targetTemperature": 180,
+   "unit": "C"
+  },
+  "timer": {
+   "remainHour": 0,
+   "remainMinute": 12,
+   "remainSecond": 30
+  }
+ }
+]

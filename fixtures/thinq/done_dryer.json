@@ -1,0 +1,11 @@
+{
+ "runState": {
+  "currentState": "WRINKLE_CARE"
+ },
+ "timer": {
+  "remainHour": 0,
+  "remainMinute": 0,
+  "totalHour": 2,
+  "totalMinute": 10
+ }
+}

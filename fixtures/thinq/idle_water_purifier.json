@@ -1,0 +1,24 @@
+{
+ "waterInfo": {
+  "waterType": [
+   "HOT",
+   "NORMAL",
+   "COLD"
+  ]
+ },
+ "runState": {
+  "cockState": "NORMAL",
+  "sterilizingState": "OFF"
+ },
+ "waterSetting": {
+  "waterType": "RECENT",
+  "defaultWater1": 120,
+  "defaultWater2": 250,
+  "defaultWater3": 500,
+  "defaultWater4": 1000,
+  "defaultWaterAmount": "DEFAULT_WATER_1"
+ },
+ "sterilization": {
+  "reservation": "ON"
+ }
+}

@@ -1,6 +1,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
  <uses-permission android:name="android.permission.INTERNET" />
  <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+ <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
  <application android:label="${appLabel}" android:theme="@style/AppTheme" android:allowBackup="false" android:usesCleartextTraffic="false" android:supportsRtl="true" android:icon="@drawable/ic_climate">
   <activity android:name=".MainActivity" android:exported="true"><intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter></activity>
   <activity android:name=".CredentialsActivity" android:exported="false"/>
@@ -8,5 +9,6 @@
   <receiver android:name=".ClimateWidget" android:label="@string/widget_name" android:exported="false"><intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE"/></intent-filter><meta-data android:name="android.appwidget.provider" android:resource="@xml/climate_widget_info"/></receiver>
   <receiver android:name=".PairClimateWidget" android:label="@string/widget_pair_name" android:exported="false"><intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE"/></intent-filter><meta-data android:name="android.appwidget.provider" android:resource="@xml/climate_widget_pair_info"/></receiver>
   <receiver android:name=".HorizontalClimateWidget" android:label="@string/widget_horizontal_name" android:exported="false"><intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE"/></intent-filter><meta-data android:name="android.appwidget.provider" android:resource="@xml/climate_widget_horizontal_info"/></receiver>
+  <receiver android:name=".CycleWidget" android:label="@string/cycle_widget_name" android:exported="false"><intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE"/></intent-filter><meta-data android:name="android.appwidget.provider" android:resource="@xml/cycle_widget_info"/></receiver>
  </application>
 </manifest>
