@@ -3,14 +3,15 @@ on:
   workflow_dispatch:
     inputs:
       build_number:
-        description: 'Unique, increasing App Store Connect build number'
-        required: true
-        default: '5'
+        description: 'Build number. Leave empty to use one more than the highest uploaded build.'
+        required: false
+        default: ''
   workflow_call:
     inputs:
       build_number:
         type: string
-        required: true
+        required: false
+        default: ''
 permissions:
   contents: read
 concurrency:
@@ -34,8 +35,6 @@ jobs:
       ASC_API_ISSUER_ID: ${{ secrets.ASC_API_ISSUER_ID }}
     steps:
       - uses: actions/checkout@v5
-      - name: Validate Apple signing configuration
-        run: python3 scripts/ios-signing.py --check
       - name: Install XcodeGen
         run: brew install xcodegen
       - name: Test Swift core

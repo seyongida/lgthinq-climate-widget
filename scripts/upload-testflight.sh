@@ -1,5 +1,13 @@
 #!/usr/bin/env bash
 set -euo pipefail
+# IOS_BUILD_NUMBER is a minimum: App Store Connect rejects a number that was already used,
+# so take whichever is higher, it or one more than the highest uploaded build.
+next_build=$(python3 scripts/asc.py next-build)
+if [[ ! "${IOS_BUILD_NUMBER:-}" =~ ^[0-9]+$ ]] || (( IOS_BUILD_NUMBER < next_build )); then
+  IOS_BUILD_NUMBER=$next_build
+fi
+export IOS_BUILD_NUMBER
+echo "Using build number $IOS_BUILD_NUMBER"
 python3 scripts/ios-signing.py --check
 xcode_major=$(xcodebuild -version | sed -n 's/^Xcode \([0-9]*\).*/\1/p')
 (( xcode_major >= 26 )) || { echo "App Store Connect requires Xcode 26 or later" >&2; exit 1; }
