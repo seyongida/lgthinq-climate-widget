@@ -70,6 +70,12 @@ This app reads temperature and humidity from a user's LG ThinQ humidifier using 
 No sign-in is needed for review. On the first screen, tap "샘플 데이터로 체험하기" (Try with sample data). The app then shows on-device sample values, clearly labelled as sample data, and the home screen widget shows the same values. Open the gear icon and tap "체험 종료" to end the demo.
 ```
 
+### TestFlight 자동 갱신
+
+TestFlight 빌드는 올린 날부터 90일이 지나면 실행되지 않습니다. `Keep TestFlight builds current` 워크플로가 매주 월요일 오전 9시(한국 시간)에 외부 테스터가 받은 최신 빌드의 만료일을 확인하고, 20일 이하로 남으면 새 빌드를 올립니다. 업로드 워크플로는 Apple 처리가 끝나면 "테스트할 내용"을 적고 외부 그룹에 추가한 뒤 베타 심사에 제출합니다. 같은 버전의 이후 빌드는 전체 심사를 다시 거치지 않을 수 있지만, 보장되지는 않습니다.
+
+같은 점검에서 배포 인증서나 App Store 프로파일이 30일 안에 만료되면 실행이 실패로 끝나 GitHub이 메일을 보냅니다. 그때 `asc.py setup`(인증서 Secret을 지운 뒤)과 `asc.py appstore-profiles`로 갱신합니다. 이미 설치된 TestFlight 빌드는 Apple이 다시 서명하므로 인증서 만료와 관계없이 90일까지 실행됩니다.
+
 ### Firebase로 등록한 iPhone에 배포
 
 **친구에게는 TestFlight 공개 링크가 기본입니다.** Firebase는 TestFlight 심사가 거절됐을 때의 대비책으로만 씁니다. 릴리즈 태그마다 자동 배포는 유지합니다.
