@@ -141,7 +141,7 @@ Variables:
 | `IOS_APP_GROUP` | 두 타깃에 등록한 App Group, 기본 `group.dev.thinqclimate.widget` |
 | `IOS_TESTFLIGHT_URL` | 실제 생성한 `https://testflight.apple.com/join/...` 공개 초대 링크 |
 | `IOS_TESTFLIGHT_ENABLED` | 태그 릴리즈 후 자동 업로드할 때만 `true` |
-| `IOS_BUILD_NUMBER` | 등록하지 않습니다. 비워 두면 App Store Connect의 가장 높은 빌드 번호에 1을 더해 씁니다. 특정 번호가 꼭 필요할 때만 일시적으로 지정하세요 |
+| `IOS_BUILD_NUMBER` | 최소 빌드 번호(선택). App Store Connect의 가장 높은 빌드 번호 + 1과 비교해 더 큰 값을 쓰므로, 등록해 둬도 같은 번호를 재사용하지 않습니다 |
 
 Secrets:
 
