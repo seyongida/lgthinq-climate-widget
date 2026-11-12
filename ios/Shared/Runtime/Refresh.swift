@@ -21,6 +21,14 @@ enum Refresher {
         let now = Date()
         var config: ThinQConfig?
         var configLoaded = false
+        // Names can change in the ThinQ app, so refresh the list before reading states.
+        if store.devices().contains(where: { !DemoData.isDemo($0.id) }), let current = try? store.config(),
+           let found = try? await ThinQClient(config: current).devices() {
+            config = current; configLoaded = true
+            store.setCatalog(found)
+            let merged = ThinQDevice.merge(selected: store.devices(), found: found)
+            if merged != store.devices() { store.selectDevices(merged) }
+        }
         for device in store.devices() {
             if DemoData.isDemo(device.id) {
                 store.write(accepted(HomeStatus.parse(DemoData.state(for: device, at: now), type: device.type, now: now), at: now), for: device.id)

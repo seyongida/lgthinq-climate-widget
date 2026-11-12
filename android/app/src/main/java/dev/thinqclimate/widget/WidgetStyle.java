@@ -15,7 +15,7 @@ record WidgetStyle(int background, int accent, int opacity) {
         new WidgetStyle(Color.rgb(239,233,248),Color.rgb(111,77,151),100),
         new WidgetStyle(Color.rgb(251,234,221),Color.rgb(158,80,54),100)
     };
-    WidgetStyle { background=background|0xff000000;accent=accent|0xff000000;opacity=Math.max(40,Math.min(100,opacity)); }
+    WidgetStyle { background=background|0xff000000;accent=accent|0xff000000;opacity=Math.max(0,Math.min(100,opacity)); }
     static WidgetStyle defaults(){return PRESETS[0];}
     int surface(){return (Math.round(255*opacity/100f)<<24)|(background&0xffffff);}
     int foreground(){

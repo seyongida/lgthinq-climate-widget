@@ -3,4 +3,5 @@
  android:targetCellWidth="2" android:targetCellHeight="1" android:updatePeriodMillis="0"
  android:initialLayout="@layout/cycle_widget" android:previewLayout="@layout/cycle_widget_preview"
  android:resizeMode="horizontal|vertical" android:widgetCategory="home_screen"
+ android:configure="dev.thinqclimate.widget.CycleConfigActivity" android:widgetFeatures="reconfigurable|configuration_optional"
  android:description="@string/cycle_widget_description"/>

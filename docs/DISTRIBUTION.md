@@ -70,19 +70,61 @@ This app reads temperature and humidity from a user's LG ThinQ humidifier using 
 No sign-in is needed for review. On the first screen, tap "샘플 데이터로 체험하기" (Try with sample data). The app then shows on-device sample values, clearly labelled as sample data, and the home screen widget shows the same values. Open the gear icon and tap "체험 종료" to end the demo.
 ```
 
-### 심사 거절 시 Ad Hoc 대체 경로
+### Firebase로 등록한 iPhone에 배포
 
-`Watch TestFlight review`가 1시간마다 최신 심사 상태를 확인합니다. 거절되면 `Publish iOS Ad Hoc install`을 한 번 실행해 지정한 기기만 설치할 수 있는 IPA를 만들고 설치 페이지에 직접 설치 버튼을 추가합니다. App Store Connect API 키가 없으면 아무 일도 하지 않고, 기기가 등록되지 않았으면 실패로 끝나 GitHub 알림을 보냅니다.
+TestFlight와 별개로, 초대한 사람의 iPhone에만 설치되는 빌드를 Firebase App Distribution으로 보냅니다. 심사가 없고, 친구는 초대 메일에서 기기를 등록하므로 UDID를 직접 찾을 필요가 없습니다. 빌드에는 등록 기기의 UDID가 들어 있어 Firebase로만 전달하고 GitHub에는 올리지 않습니다. 앱에는 Firebase SDK가 없습니다.
 
-설정은 한 번만 하면 됩니다. App Store Connect → 사용자 및 액세스 → 통합에서 Admin 키를 만들고 `.p8`을 내려받은 뒤 실행합니다. 키, 인증서, 기기 목록은 GitHub Secrets에만 저장합니다.
+한 번만 설정합니다.
+
+1. [Firebase 콘솔](https://console.firebase.google.com)에서 프로젝트를 만듭니다. Google 애널리틱스는 필요 없습니다.
+2. 프로젝트 설정 → 내 앱 → iOS 앱 추가에서 번들 ID `dev.thinqclimate.widget`을 입력합니다. 구성 파일 다운로드와 SDK 추가 단계는 건너뜁니다. 화면의 **앱 ID**(`1:…:ios:…`)를 적어 둡니다.
+3. App Distribution을 열고 테스터 및 그룹에서 그룹을 만듭니다. 별칭은 `friends`로 하고 친구 이메일을 추가합니다.
+4. 서비스 계정 키를 **앱과 같은 프로젝트에서** 만듭니다. Firebase 콘솔의 프로젝트 설정 → **서비스 계정** 탭 → *Google Cloud에서 서비스 계정 관리*를 누르면 올바른 프로젝트가 열립니다. 서비스 계정을 만들어 **Firebase App Distribution Admin** 역할을 주고, 키 → 키 추가 → JSON으로 내려받습니다. Google Cloud 콘솔을 따로 열면 위쪽 프로젝트 선택이 다른 프로젝트일 수 있으니 주의하세요.
+5. 키와 앱 ID를 저장합니다. 명령이 키로 앱의 프로젝트와 테스터 그룹에 실제로 접근해 본 뒤에만 저장하며, 다른 프로젝트의 키면 프로젝트 번호를 알려 주고 멈춥니다. 키 파일은 GitHub Secrets에만 들어가며, 저장 후 지워도 됩니다.
+
+   ```sh
+   python3 scripts/asc.py firebase --key ~/Downloads/<키>.json --app-id 1:…:ios:…
+   ```
+
+이미 Apple 개발자 계정에 등록된 iPhone은 Firebase에서 다시 등록할 필요 없이 빌드에 넣을 수 있습니다. Firebase에는 UDID를 넣는 기능이 없지만, 설치를 허용하는 기기 목록은 Apple 프로파일이 정하기 때문입니다. 테스터는 Firebase 초대만 받으면 됩니다. 계정에는 업무용 기기도 있을 수 있으니 `--dry-run`으로 먼저 보고 `--only`로 고르세요.
 
 ```sh
-python3 scripts/asc.py setup --key ~/Downloads/AuthKey_XXXX.p8 --key-id XXXX --issuer YYYY --device "친구 iPhone|UDID"
+python3 scripts/asc.py import-devices --apple --only "iPhone 13 mini" --key ~/Downloads/AuthKey_XXXX.p8 --key-id XXXX --issuer YYYY --dry-run
 ```
 
-`--device`는 저장된 목록을 교체합니다. 수동 실행은 `gh workflow run ios-adhoc.yml`입니다.
+친구가 기기를 등록할 때마다 반복합니다.
 
-**주의:** Ad Hoc IPA에는 등록 기기의 UDID가 들어 있고 이 저장소는 공개이므로, 파일을 받은 누구나 UDID를 볼 수 있습니다. 기기 소유자의 동의를 받고, 프로파일에는 지정한 기기만 넣습니다. 친구 폰에서 개발자 모드를 켜야 할 수 있습니다.
+1. 친구가 iPhone의 Safari에서 초대 메일을 열어 수락하고, 안내대로 기기를 등록합니다. Firebase가 새 기기 알림 메일을 보냅니다.
+2. App Distribution → 테스터 및 그룹에서 **Apple UDID 내보내기**로 파일을 받습니다.
+3. 파일을 넣으면 기기 목록을 저장하고 새 빌드를 시작합니다. 빌드가 끝나면 Firebase가 테스터에게 설치 메일을 보냅니다.
+
+   ```sh
+   python3 scripts/asc.py import-devices ~/Downloads/<내보낸 파일>.txt
+   ```
+
+`v*` 태그로 릴리즈하면 Firebase에도 자동 배포되고, TestFlight 심사가 거절되면 감시 워크플로가 한 번 빌드를 보냅니다. 친구 iPhone에서 설정 → 개인정보 보호 및 보안 → 개발자 모드를 켜야 할 수 있습니다. Apple 계정은 1년에 iPhone 100대까지 등록할 수 있습니다.
+
+### GitHub에 저장하는 값 한눈에 보기
+
+직접 입력하지 말고 표의 명령으로 저장하세요. 명령이 형식과 실제 접근 가능 여부를 확인한 뒤 저장합니다. 예시는 형식만 보여 주며 실제 값이 아닙니다.
+
+| 이름 | 종류 | 형식 예시 | 값을 확인하는 곳 | 저장 방법 |
+|---|---|---|---|---|
+| `IOS_TEAM_ID` | Variable | `L78W862TSU` (10자) | developer.apple.com → 계정 → 멤버십 세부 사항 → 팀 ID | `gh variable set` |
+| `IOS_BUNDLE_ID` | Variable | `dev.thinqclimate.widget` | `ios/project.yml`의 `CLIMATE_BUNDLE_ID` | `gh variable set` |
+| `IOS_APP_GROUP` | Variable | `group.dev.thinqclimate.widget` | `ios/project.yml`의 `CLIMATE_APP_GROUP` | `gh variable set` |
+| `IOS_TESTFLIGHT_URL` | Variable | `https://testflight.apple.com/join/AbCd1234` | App Store Connect → TestFlight → 외부 그룹 → 공개 링크 | `gh variable set` |
+| `ASC_API_KEY_P8_BASE64` | Secret | `LS0tLS1CRUdJTi…` (`.p8` 파일의 base64) | App Store Connect → 사용자 및 액세스 → 통합 → 팀 키 (파일은 한 번만 다운로드) | `asc.py setup` |
+| `ASC_API_KEY_ID` | Secret | `6WFK8R588T` (10자) | 같은 화면의 키 ID 열 | `asc.py setup` |
+| `ASC_API_ISSUER_ID` | Secret | `a0ac3858-0a34-429f-…` (UUID) | 같은 화면 위쪽의 Issuer ID | `asc.py setup` |
+| `IOS_DISTRIBUTION_CERT_ID`, `IOS_DISTRIBUTION_P12_BASE64`, `IOS_DISTRIBUTION_P12_PASSWORD` | Secret | 스크립트가 만든 인증서 | 직접 만들지 않습니다 | `asc.py setup`이 생성 |
+| `IOS_ADHOC_DEVICES` | Secret | `민수의 iPhone\|00008110-001A2B3C4D5E6F78` (한 줄에 한 대) | Firebase → App Distribution → 테스터 및 그룹 → Apple UDID 내보내기, 또는 Apple 계정의 등록 기기 | `asc.py import-devices` |
+| `FIREBASE_SERVICE_ACCOUNT_BASE64` | Secret | `ewogICJ0eXBlIjog…` (JSON 키의 base64) | Firebase → 프로젝트 설정 → 서비스 계정. JSON의 `project_id`가 프로젝트 설정의 **프로젝트 ID**와 같아야 합니다 | `asc.py firebase` |
+| `FIREBASE_IOS_APP_ID` | Variable | `1:439215807830:ios:9e873ad3…` | Firebase → 프로젝트 설정 → 일반 → 내 앱 → 앱 ID. 가운데 숫자가 **프로젝트 번호**입니다 | `asc.py firebase` |
+| `FIREBASE_GROUPS` | Variable | `friends` | Firebase → App Distribution → 테스터 및 그룹 → 그룹 별칭 | `asc.py firebase --groups` |
+| `ANDROID_KEYSTORE_BASE64` 외 3개 | Secret | keystore의 base64, 암호, alias | 로컬 `android/keystore/release.jks`, `.env.signing` | 위 Android 서명 절 참고 |
+
+키 파일과 앱 ID가 같은 프로젝트인지 직접 확인하려면 Firebase 프로젝트 설정 → 일반에서 **프로젝트 ID**(JSON의 `project_id`와 비교)와 **프로젝트 번호**(앱 ID 가운데 숫자와 비교)를 보면 됩니다.
 
 ### GitHub Actions로 업로드(선택)
 

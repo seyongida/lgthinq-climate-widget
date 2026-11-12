@@ -52,6 +52,91 @@ public class WidgetLayoutTest {
         }
         assertEquals(4,found);
     }
+    @Test public void opacityGoesDownToFullyTransparent() {
+        assertEquals(0,new WidgetStyle(WidgetStyle.PRESETS[0].background(),WidgetStyle.PRESETS[0].accent(),0).opacity());
+        assertEquals(0,new WidgetStyle(WidgetStyle.PRESETS[0].background(),WidgetStyle.PRESETS[0].accent(),-5).opacity());
+        assertEquals(100,new WidgetStyle(WidgetStyle.PRESETS[0].background(),WidgetStyle.PRESETS[0].accent(),150).opacity());
+        WidgetStyle clear=new WidgetStyle(WidgetStyle.PRESETS[1].background(),WidgetStyle.PRESETS[1].accent(),0);
+        assertEquals(0,clear.surface()>>>24);
+        assertEquals(clear,WidgetStyle.decode(clear.encode()));
+        InstrumentationRegistry.getInstrumentation().runOnMainSync(()->{
+            RemoteViews views=ClimateWidget.pair(context,store,103,List.of("humidifier","purifier"),true,false,clear);
+            View root=views.apply(context,new FrameLayout(context));assertNotNull(root);
+        });
+    }
+    /** Draws widgets over a known color and checks the background pixel, so opacity is verified as rendered. */
+    @Test public void opacityIsVisibleInRenderedWidgets() {
+        int behind=android.graphics.Color.rgb(200,30,30);
+        InstrumentationRegistry.getInstrumentation().runOnMainSync(()->{
+            for(int percent:new int[]{0,50,100}) {
+                WidgetStyle style=new WidgetStyle(WidgetStyle.PRESETS[1].background(),WidgetStyle.PRESETS[1].accent(),percent);
+                for(boolean pair:new boolean[]{false,true}) {
+                    RemoteViews views=pair?ClimateWidget.pair(context,store,104,List.of("humidifier","purifier"),true,false,style)
+                        :ClimateWidget.single(context,store,104,List.of("humidifier"),0,style,true);
+                    View v=views.apply(context,new FrameLayout(context));
+                    int w=Ui.dp(context,pair?220:110),h=Ui.dp(context,110);
+                    v.measure(View.MeasureSpec.makeMeasureSpec(w,View.MeasureSpec.EXACTLY),View.MeasureSpec.makeMeasureSpec(h,View.MeasureSpec.EXACTLY));v.layout(0,0,w,h);
+                    android.graphics.Bitmap b=android.graphics.Bitmap.createBitmap(w,h,android.graphics.Bitmap.Config.ARGB_8888);
+                    android.graphics.Canvas canvas=new android.graphics.Canvas(b);canvas.drawColor(behind);v.draw(canvas);
+                    int pixel=b.getPixel(Ui.dp(context,24),h-Ui.dp(context,4));b.recycle();
+                    int expected=WidgetStyle.blend(style.background(),behind,percent/100f);
+                    String where=(pair?"pair ":"single ")+percent+"%: got "+Integer.toHexString(pixel)+" expected "+Integer.toHexString(expected);
+                    android.util.Log.i("ClimateQA",where);
+                    assertTrue(where,Math.abs(android.graphics.Color.red(pixel)-android.graphics.Color.red(expected))<=3
+                        &&Math.abs(android.graphics.Color.green(pixel)-android.graphics.Color.green(expected))<=3);
+                }
+            }
+        });
+    }
+    @Test public void timerWidgetSaysHowManyMoreAreRunning() {
+        long now=System.currentTimeMillis();
+        dev.thinqclimate.core.Home.Status washer=dev.thinqclimate.core.Home.parse(Map.of("runState",Map.of("currentState","RINSING"),"timer",Map.of("remainHour",0,"remainMinute",23,"totalHour",0,"totalMinute",58)),"DEVICE_WASHER",now);
+        dev.thinqclimate.core.Home.Status dryer=dev.thinqclimate.core.Home.parse(Map.of("runState",Map.of("currentState","RUNNING"),"timer",Map.of("remainHour",1,"remainMinute",5,"totalHour",2,"totalMinute",0)),"DEVICE_DRYER",now);
+        List<CycleWidget.Item> items=List.of(new CycleWidget.Item(new Climate.Device("w","세탁기","DEVICE_WASHER"),washer,washer.cycles().get(0)),
+            new CycleWidget.Item(new Climate.Device("d","건조기","DEVICE_DRYER"),dryer,dryer.cycles().get(0)));
+        InstrumentationRegistry.getInstrumentation().runOnMainSync(()->{
+            View one=CycleWidget.views(context,items,List.of(),1).apply(context,new FrameLayout(context));
+            ViewGroup rows=one.findViewById(R.id.cycle_rows);assertEquals(1,rows.getChildCount());
+            assertTrue(((TextView)rows.getChildAt(0).findViewById(R.id.cycle_detail)).getText().toString().endsWith("외 1대"));
+            View two=CycleWidget.views(context,items,List.of(),2).apply(context,new FrameLayout(context));
+            ViewGroup both=two.findViewById(R.id.cycle_rows);assertEquals(2,both.getChildCount());
+            for(int i=0;i<2;i++)assertFalse(((TextView)both.getChildAt(i).findViewById(R.id.cycle_detail)).getText().toString().contains("외 "));
+        });
+    }
+    /** Selected-only mode, the row limit, the idle device, the alert switch and transparency all follow the options. */
+    @Test public void timerWidgetFollowsItsOptions() throws Exception {
+        long now=System.currentTimeMillis();
+        store.selectDevices(List.of(new Climate.Device("w","세탁기","DEVICE_WASHER"),new Climate.Device("d","건조기","DEVICE_DRYER"),new Climate.Device("f","냉장고","DEVICE_REFRIGERATOR")));
+        store.status("w",ThinQ.parseJson("{\"runState\":{\"currentState\":\"RINSING\"},\"timer\":{\"remainHour\":0,\"remainMinute\":23,\"totalHour\":0,\"totalMinute\":58}}"),now);
+        store.status("d",ThinQ.parseJson("{\"runState\":{\"currentState\":\"RUNNING\"},\"timer\":{\"remainHour\":1,\"remainMinute\":5,\"totalHour\":2,\"totalMinute\":0}}"),now);
+        store.status("f",ThinQ.parseJson("{\"doorStatus\":[{\"doorState\":\"OPEN\",\"locationName\":\"MAIN\"}]}"),now);
+        assertEquals(List.of("w","d"),store.appliances().stream().map(Climate.Device::id).collect(java.util.stream.Collectors.toList()));
+        WidgetStyle clear=new WidgetStyle(WidgetStyle.PRESETS[0].background(),WidgetStyle.PRESETS[0].accent(),0);
+        Store.TimerOptions onlyDryer=new Store.TimerOptions(true,List.of("d"),3,"",false,clear);
+        Store.TimerOptions oneRow=new Store.TimerOptions(false,List.of(),1,"",true,WidgetStyle.defaults());
+        store.status("w",ThinQ.parseJson("{\"runState\":{\"currentState\":\"RINSING\"},\"timer\":{\"remainHour\":0,\"remainMinute\":23,\"totalHour\":0,\"totalMinute\":58}}"),now);
+        InstrumentationRegistry.getInstrumentation().runOnMainSync(()->{
+            ViewGroup rows=CycleWidget.forWidget(context,store,onlyDryer,3).apply(context,new FrameLayout(context)).findViewById(R.id.cycle_rows);
+            assertEquals(1,rows.getChildCount());
+            assertEquals("건조기",((TextView)rows.getChildAt(0).findViewById(R.id.cycle_name)).getText().toString());
+            ViewGroup limited=CycleWidget.forWidget(context,store,oneRow,3).apply(context,new FrameLayout(context)).findViewById(R.id.cycle_rows);
+            assertEquals(1,limited.getChildCount());
+            assertTrue(((TextView)limited.getChildAt(0).findViewById(R.id.cycle_detail)).getText().toString().endsWith("외 1대"));
+        });
+        store.status("w",ThinQ.parseJson("{\"runState\":{\"currentState\":\"POWER_OFF\"},\"timer\":{\"remainHour\":0,\"remainMinute\":0}}"),now);
+        store.status("d",ThinQ.parseJson("{\"runState\":{\"currentState\":\"POWER_OFF\"},\"timer\":{\"remainHour\":0,\"remainMinute\":0}}"),now);
+        Store.TimerOptions pinned=new Store.TimerOptions(false,List.of(),3,"w",true,WidgetStyle.defaults());
+        Store.TimerOptions quiet=new Store.TimerOptions(false,List.of(),3,"",false,WidgetStyle.defaults());
+        InstrumentationRegistry.getInstrumentation().runOnMainSync(()->{
+            ViewGroup rows=CycleWidget.forWidget(context,store,pinned,3).apply(context,new FrameLayout(context)).findViewById(R.id.cycle_rows);
+            assertEquals(2,rows.getChildCount());
+            assertEquals("세탁기",((TextView)rows.getChildAt(0).findViewById(R.id.cycle_name)).getText().toString());
+            assertEquals("꺼짐",((TextView)rows.getChildAt(0).findViewById(R.id.cycle_detail)).getText().toString());
+            assertEquals("냉장고 문이 열려 있어요",((TextView)rows.getChildAt(1).findViewById(R.id.cycle_name)).getText().toString());
+            View empty=CycleWidget.forWidget(context,store,quiet,3).apply(context,new FrameLayout(context));
+            assertEquals(View.VISIBLE,empty.findViewById(R.id.cycle_empty).getVisibility());
+        });
+    }
     @Test public void compactValuesFitOneCell() {
         InstrumentationRegistry.getInstrumentation().runOnMainSync(()->{
             RemoteViews tiny=ClimateWidget.single(context,store,101,List.of("humidifier"),0);tiny.setViewVisibility(R.id.status,View.GONE);

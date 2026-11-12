@@ -573,7 +573,14 @@ struct HomeView: View {
         VStack(spacing: 8) {
             VStack(alignment: .leading, spacing: 0) {
                 if let item = model.activeCycles.first {
-                    Label(item.title, systemImage: HomeIcon.symbol(item.device.type)).font(.system(size: 14, weight: .semibold)).foregroundStyle(Theme.ink).lineLimit(1)
+                    HStack(spacing: 4) {
+                        Label(item.title, systemImage: HomeIcon.symbol(item.device.type)).font(.system(size: 14, weight: .semibold)).foregroundStyle(Theme.ink).lineLimit(1)
+                        Spacer(minLength: 0)
+                        if model.activeCycles.count > 1 {
+                            Text("외 \(model.activeCycles.count - 1)대").font(.system(size: 11, weight: .bold)).foregroundStyle(Theme.accent)
+                                .padding(.horizontal, 6).padding(.vertical, 2).background(Theme.tint, in: Capsule()).fixedSize()
+                        }
+                    }
                     Spacer(minLength: 0)
                     Text(item.cycle.label).font(.system(size: 13, weight: .semibold)).foregroundStyle(Theme.accent)
                     Countdown(cycle: item.cycle, endsAt: item.endsAt).font(.system(size: 34, weight: .bold, design: .rounded)).foregroundStyle(Theme.ink).lineLimit(1).minimumScaleFactor(0.5)
@@ -746,7 +753,7 @@ struct WidgetGuide: View {
                         }
                     }
                 }.surfaceCard().padding(.top, 18)
-                Text("위젯의 시각을 누르면 새로고침되고, 나머지 영역을 누르면 앱이 열려요. 아이폰 홈 화면의 가장 작은 위젯은 ‘작은 크기’이며, 더 작게 보려면 잠금 화면 위젯을 쓰세요. 잠금 화면을 길게 눌러 사용자화에서 추가합니다.")
+                Text("iPhone 위젯은 배경을 투명하게 할 수 없어요. 배경화면에 녹아드는 모습을 원하면 iOS 26 이상에서 홈 화면을 길게 눌러 편집 → 사용자화 → 투명을 고르세요. 위젯의 시각을 누르면 새로고침되고, 나머지 영역을 누르면 앱이 열려요. 아이폰 홈 화면의 가장 작은 위젯은 ‘작은 크기’이며, 더 작게 보려면 잠금 화면 위젯을 쓰세요. 잠금 화면을 길게 눌러 사용자화에서 추가합니다.")
                     .font(.system(size: 13)).foregroundStyle(Theme.muted).lineSpacing(2).padding(.top, 14)
                 Text("색상").font(.system(size: 21, weight: .bold)).foregroundStyle(Theme.ink).padding(.top, 28)
                 LazyVGrid(columns: [GridItem(.flexible(), spacing: 14), GridItem(.flexible())], spacing: 18) {

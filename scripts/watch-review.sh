@@ -11,13 +11,13 @@ state=$(python3 scripts/asc.py review-state)
 echo "Newest TestFlight review state: $state"
 [[ "$state" == "REJECTED" ]] || exit 0
 
-if gh release list --limit 50 --json tagName --jq '.[].tagName' | grep -q '^adhoc-'; then
-  echo "An Ad Hoc release already exists."
+if gh run list --workflow ios-adhoc.yml --limit 20 --json createdAt --jq '.[].createdAt' | grep -q .; then
+  echo "A Firebase build was already started."
   exit 0
 fi
-if [[ "${HAS_DEVICES:-}" != "true" || "${HAS_CERTIFICATE:-}" != "true" ]]; then
+if [[ "${HAS_DEVICES:-}" != "true" || "${HAS_CERTIFICATE:-}" != "true" || "${HAS_FIREBASE:-}" != "true" ]]; then
   # A failed run makes GitHub email the repository owner.
-  echo "::error::TestFlight review was rejected, but no Ad Hoc device or certificate is configured. Run scripts/asc.py setup with --device."
+  echo "::error::TestFlight review was rejected, but Firebase distribution is not configured. See docs/DISTRIBUTION.md."
   exit 1
 fi
 gh workflow run ios-adhoc.yml --ref main

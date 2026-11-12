@@ -176,6 +176,8 @@ public final class Home {
         Map.entry("DEVICE_WASHTOWER_DRYER", "워시타워 건조기"), Map.entry("DEVICE_WATER_HEATER", "온수기"), Map.entry("DEVICE_WATER_PURIFIER", "정수기"),
         Map.entry("DEVICE_WINE_CELLAR", "와인셀러"), Map.entry("DEVICE_SYSTEM_BOILER", "보일러"), Map.entry("DEVICE_VENTILATOR", "환기장치"));
     public static String name(String type) { return NAMES.getOrDefault(type, "기기"); }
+    /** Devices that run programs with a finish time, such as washers, dryers and dishwashers. */
+    public static boolean isAppliance(String type) { return DONE_NOUN.containsKey(type); }
     /** Platform-neutral icon key; each app maps it to its own drawable. */
     public static String icon(String type) {
         return switch (type) {

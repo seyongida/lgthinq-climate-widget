@@ -31,7 +31,6 @@ struct ClimateWidgetIntent: WidgetConfigurationIntent {
     @Parameter(title: "첫 번째 기기") var first: DeviceEntity?
     @Parameter(title: "두 번째 기기 · 중간 크기") var second: DeviceEntity?
     @Parameter(title: "색상", default: .ivory) var palette: PaletteOption
-    @Parameter(title: "배경 불투명도", default: 100, controlStyle: .slider, inclusiveRange: (40, 100)) var opacity: Double
     @Parameter(title: "직접 배경 색상 (#RRGGBB)") var customBackground: String?
     @Parameter(title: "직접 습도 색상 (#RRGGBB)") var customAccent: String?
 }
@@ -68,7 +67,7 @@ struct ClimateProvider: AppIntentTimelineProvider {
         }
         devices += selected.filter { !devices.contains($0) }
         let style = WidgetStyle.resolve(preset: configuration.palette.rawValue, customBackground: configuration.customBackground,
-                                        customAccent: configuration.customAccent, opacity: Int(configuration.opacity.rounded()))
+                                        customAccent: configuration.customAccent, opacity: 100)
         return ClimateEntry(date: date, devices: devices, states: states, style: style)
     }
     private var sample: ClimateEntry {

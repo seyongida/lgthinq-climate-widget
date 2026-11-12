@@ -76,6 +76,16 @@ public final class Climate {
         Map<?,?> sensors = resource instanceof Map<?,?> m ? m : Map.of();
         return new Reading(sensor(sensors.get("temperature"), -50, 80), sensor(sensors.get("humidity"), 0, 100), now);
     }
+    /**
+     * Keeps the person's selection and order, but takes current names and types from ThinQ and drops deleted devices.
+     * New devices are not added here; they appear in the device picker through the catalog.
+     */
+    public static List<Device> merge(List<Device> selected, List<Device> found) {
+        if (found.isEmpty()) return selected;
+        List<Device> result = new ArrayList<>();
+        for (Device old : selected) for (Device d : found) if (d.id().equals(old.id())) { result.add(d); break; }
+        return List.copyOf(result);
+    }
     public static List<Device> devices(Object response) {
         if (!(response instanceof List<?> list)) throw new IllegalArgumentException("기기 목록 응답 형식이 올바르지 않습니다.");
         var result = new ArrayList<Device>();

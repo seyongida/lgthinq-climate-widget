@@ -89,6 +89,10 @@ public class DesignCaptureTest {
             dumpPage(main,"redesign-page");
             dumpWidget(context,"redesign-cycle-widget");
             CycleNotifier.sync(context);
+            Activity timer=instrumentation.startActivitySync(new Intent(context,CycleConfigActivity.class)
+                .putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID,7777).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+            dumpPage(timer,"redesign-timer-settings");
+            instrumentation.runOnMainSync(timer::finish);
         } finally {
             instrumentation.removeMonitor(monitor);
             if(setup!=null){Activity a=setup;instrumentation.runOnMainSync(a::finish);}

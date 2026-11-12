@@ -26,7 +26,20 @@ public final class RefreshWorker extends Worker {
             generation = store.generation(); devices = store.devices();
         }
         ThinQ api = new ThinQ(config);
-        for (Climate.Device d : devices) {
+        // Names can change in the ThinQ app, so refresh the list before reading states.
+        try {
+            List<Climate.Device> found = api.devices();
+            synchronized (LOCK) {
+                if (generation.equals(store.generation()) && !found.isEmpty()) {
+                    store.catalog(found);
+                    List<Climate.Device> merged = Climate.merge(store.devices(), found);
+                    if (!merged.equals(store.devices())) store.renameDevices(merged);
+                }
+            }
+        } catch (Exception ignored) { /* Keep the stored names until the next run. */ }
+        final List<Climate.Device> current;
+        synchronized (LOCK) { current = store.devices(); }
+        for (Climate.Device d : current) {
             if (isStopped()) break;
             synchronized (LOCK) {
                 if (!generation.equals(store.generation())) break;
@@ -43,7 +56,7 @@ public final class RefreshWorker extends Worker {
             }
             ClimateWidget.renderAll(context);
         }
-        if (!isStopped()) refreshEnergy(store, api, devices);
+        if (!isStopped()) refreshEnergy(store, api, current);
         ClimateWidget.renderAll(context);
         CycleWidget.renderAll(context);
         CycleNotifier.sync(context);

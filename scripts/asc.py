@@ -112,6 +112,42 @@ def parse_devices(text):
     return devices
 
 
+def parse_export(text):
+    """Reads Apple's bulk device format, which Firebase App Distribution exports: Device ID, Device Name, Device Platform."""
+    devices = []
+    for line in text.splitlines():
+        parts = [p.strip() for p in line.split('\t')]
+        if len(parts) < 2 or parts[0].lower() in ('device id', 'deviceid') or not UDID.fullmatch(parts[0]):
+            continue
+        if len(parts) > 2 and parts[2] and parts[2].lower() not in ('ios', 'ipados'):
+            continue
+        name = parts[1].replace('|', ' ') or 'iPhone'
+        if all(udid != parts[0] for _, udid in devices):
+            devices.append((name, parts[0]))
+    if not devices:
+        raise SystemExit('No iPhone or iPad UDIDs found in the file')
+    return devices
+
+
+def apple_devices(client):
+    """iPhones and iPads already registered in the Apple Developer account, as (name, UDID)."""
+    result = []
+    for item in client.get('/v1/devices', filter_platform='IOS', filter_status='ENABLED', limit=200):
+        a = item['attributes']
+        if a.get('deviceClass') in ('IPHONE', 'IPAD', 'IPOD') and UDID.fullmatch(a.get('udid', '')):
+            result.append(((a.get('name') or 'iPhone').replace('|', ' '), a['udid']))
+    return result
+
+
+def merge_devices(*lists):
+    seen, result = set(), []
+    for devices in lists:
+        for name, udid in devices:
+            if udid.lower() not in seen:
+                seen.add(udid.lower()); result.append((name, udid))
+    return result
+
+
 def device_id(client, name, udid):
     found = client.get('/v1/devices', filter_udid=udid, limit=1)
     if found:
@@ -170,11 +206,44 @@ def prepare_adhoc(client, signing_dir, team, bundle, certificate_id, devices_tex
     return len(device_ids)
 
 
-def manifest(ipa_url, bundle_id, version, title):
-    return plistlib.dumps({'items': [{
-        'assets': [{'kind': 'software-package', 'url': ipa_url}],
-        'metadata': {'bundle-identifier': bundle_id, 'bundle-version': version, 'kind': 'software', 'title': title},
-    }]})
+def google_token(key):
+    """OAuth token for a Google service account key, signed with the system openssl."""
+    now = int(time.time())
+    claims = {'iss': key['client_email'], 'scope': 'https://www.googleapis.com/auth/cloud-platform',
+              'aud': key['token_uri'], 'iat': now, 'exp': now + 600}
+    signing_input = b64url(json.dumps({'alg': 'RS256', 'typ': 'JWT'}).encode()) + '.' + b64url(json.dumps(claims).encode())
+    with tempfile.NamedTemporaryFile('w', delete=False) as handle:
+        handle.write(key['private_key'])
+    try:
+        os.chmod(handle.name, 0o600)
+        signature = subprocess.run([OPENSSL, 'dgst', '-sha256', '-sign', handle.name], input=signing_input.encode(),
+                                   stdout=subprocess.PIPE, check=True).stdout
+    finally:
+        Path(handle.name).unlink(missing_ok=True)
+    body = urllib.parse.urlencode({'grant_type': 'urn:ietf:params:oauth:grant-type:jwt-bearer',
+                                   'assertion': signing_input + '.' + b64url(signature)}).encode()
+    with urllib.request.urlopen(key['token_uri'], body, timeout=30) as response:
+        return json.loads(response.read())['access_token']
+
+
+def check_firebase(key, app_id, groups):
+    """Confirms the key can reach the app's Firebase project and the tester groups exist."""
+    number = app_id.split(':')[1]
+    base = os.environ.get('FIREBASE_API_BASE', 'https://firebaseappdistribution.googleapis.com')
+    request = urllib.request.Request(f'{base}/v1/projects/{number}/groups', headers={'Authorization': 'Bearer ' + google_token(key)})
+    try:
+        with urllib.request.urlopen(request, timeout=30) as response:
+            found = {g['name'].split('/')[-1] for g in json.loads(response.read()).get('groups', [])}
+    except urllib.error.HTTPError as error:
+        message = json.loads(error.read() or b'{}').get('error', {}).get('message', '')
+        other = re.search(r'in project (\d+)', message)
+        if other and other.group(1) != number:
+            raise SystemExit(f'This key belongs to Google Cloud project {other.group(1)}, but the app is in project {number}. '
+                             'Create the service account from Firebase project settings → Service accounts of the app\'s project.')
+        raise SystemExit(f'Firebase rejected the key (HTTP {error.code}). Give the service account the Firebase App Distribution Admin role.')
+    missing = [g for g in groups.split(',') if g and g not in found]
+    if missing:
+        raise SystemExit(f'Tester group alias not found: {", ".join(missing)}. Existing: {", ".join(sorted(found)) or "none"}')
 
 
 def gh_secret(name, value):
@@ -230,15 +299,25 @@ def main():
     commands = parser.add_subparsers(dest='command', required=True)
     commands.add_parser('review-state')
     commands.add_parser('prepare-adhoc')
-    write = commands.add_parser('manifest')
-    for option in ['--ipa-url', '--bundle-id', '--bundle-version', '--title', '--out']:
-        write.add_argument(option, required=True)
     configure = commands.add_parser('setup')
     configure.add_argument('--key', required=True, help='Path to AuthKey_XXXX.p8')
     configure.add_argument('--key-id', required=True)
     configure.add_argument('--issuer', required=True)
     configure.add_argument('--bundle-id', default='dev.thinqclimate.widget')
     configure.add_argument('--device', action='append', help='"name|UDID"; replaces the saved list')
+    firebase = commands.add_parser('firebase', help='Save the Firebase service account key and app ID for distribution')
+    firebase.add_argument('--key', required=True, help='Path to the service account JSON key')
+    firebase.add_argument('--app-id', required=True, help='Firebase iOS app ID, like 1:1234567890:ios:abcdef')
+    firebase.add_argument('--groups', default='friends', help='Comma-separated tester group aliases')
+    imported = commands.add_parser('import-devices', help='Save the devices for Firebase builds and start a build')
+    imported.add_argument('file', nargs='?', help='Firebase "Export Apple UDIDs" file')
+    imported.add_argument('--apple', action='store_true', help='Also include every iPhone and iPad registered in the Apple account')
+    imported.add_argument('--key', help='App Store Connect .p8 key, needed with --apple')
+    imported.add_argument('--key-id')
+    imported.add_argument('--issuer')
+    imported.add_argument('--only', action='append', help='With --apple, keep only devices whose name contains this text (repeatable)')
+    imported.add_argument('--dry-run', action='store_true', help='Only list the devices that would be saved')
+    imported.add_argument('--no-build', action='store_true')
     args = parser.parse_args()
 
     if args.command == 'review-state':
@@ -248,8 +327,40 @@ def main():
                               os.environ['IOS_BUNDLE_ID'], os.environ['IOS_DISTRIBUTION_CERT_ID'],
                               os.environ['IOS_ADHOC_DEVICES'])
         print(f'Prepared Ad Hoc profiles for {count} device(s)')
-    elif args.command == 'manifest':
-        Path(args.out).write_bytes(manifest(args.ipa_url, args.bundle_id, args.bundle_version, args.title))
+    elif args.command == 'firebase':
+        if not re.fullmatch(r'1:\d+:ios:[0-9a-f]+', args.app_id):
+            raise SystemExit('The app ID should look like 1:1234567890:ios:abcdef (Project settings → Your apps)')
+        key = json.loads(Path(args.key).expanduser().read_text())
+        if key.get('type') != 'service_account' or 'private_key' not in key:
+            raise SystemExit('This is not a service account key file')
+        check_firebase(key, args.app_id, args.groups)
+        gh_secret('FIREBASE_SERVICE_ACCOUNT_BASE64', base64.b64encode(Path(args.key).expanduser().read_bytes()).decode())
+        subprocess.run(['gh', 'variable', 'set', 'FIREBASE_IOS_APP_ID', '--body', args.app_id], check=True, stdout=subprocess.DEVNULL)
+        subprocess.run(['gh', 'variable', 'set', 'FIREBASE_GROUPS', '--body', args.groups], check=True, stdout=subprocess.DEVNULL)
+        print(f'Saved Firebase settings for project {key.get("project_id", "?")}')
+    elif args.command == 'import-devices':
+        lists = []
+        if args.file:
+            lists.append(parse_export(Path(args.file).expanduser().read_text(encoding='utf-8-sig')))
+        if args.apple:
+            if not (args.key and args.key_id and args.issuer):
+                raise SystemExit('--apple needs --key, --key-id and --issuer')
+            registered = apple_devices(Client(str(Path(args.key).expanduser()), args.key_id, args.issuer))
+            if args.only:
+                registered = [(n, u) for n, u in registered if any(o in n for o in args.only)]
+            lists.append(registered)
+        devices = merge_devices(*lists)
+        if not devices:
+            raise SystemExit('Give a Firebase export file, --apple, or both')
+        # Names only: UDIDs stay out of terminal output and logs.
+        print(f'{len(devices)} device(s): ' + ', '.join(name for name, _ in devices))
+        if args.dry_run:
+            return
+        gh_secret('IOS_ADHOC_DEVICES', '\n'.join(f'{name}|{udid}' for name, udid in devices))
+        print(f'Saved {len(devices)} device(s) for Firebase builds')
+        if not args.no_build:
+            subprocess.run(['gh', 'workflow', 'run', 'ios-adhoc.yml', '--ref', 'main'], check=True)
+            print('Started a build; testers get it from Firebase when it finishes')
     else:
         setup(args)
 

@@ -69,6 +69,46 @@ final class DemoModeUITests: XCTestCase {
             app.swipeUp()
         }
     }
+    /// Manual QA only: adds the climate widget to the Home Screen and captures it. Skipped unless WIDGET_TOUR is set.
+    @MainActor func testWidgetOnHomeScreen() throws {
+        guard ProcessInfo.processInfo.environment["WIDGET_TOUR"] == "1" else { throw XCTSkip("Widget tour is manual") }
+        let app = XCUIApplication()
+        app.launch()
+        let start = app.buttons["startDemo"]
+        if start.waitForExistence(timeout: 10) { start.tap() }
+        sleep(3)
+        XCUIDevice.shared.press(.home)
+        let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
+        sleep(2)
+        springboard.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.55)).press(forDuration: 2)
+        sleep(2)
+        shot(springboard, "9-edit-mode")
+        let edit = springboard.buttons["편집"]
+        if edit.waitForExistence(timeout: 3) { edit.tap(); sleep(1) }
+        let addWidget = springboard.buttons["위젯 추가"]
+        XCTAssertTrue(addWidget.waitForExistence(timeout: 5), "Add widget button")
+        addWidget.tap()
+        sleep(2)
+        let search = springboard.searchFields.firstMatch
+        if search.waitForExistence(timeout: 5) { search.tap(); search.typeText("Climate"); sleep(2) }
+        shot(springboard, "9-gallery")
+        let cell = springboard.cells.containing(.staticText, identifier: "Climate Widget").firstMatch
+        if cell.waitForExistence(timeout: 5) { cell.tap() } else { springboard.staticTexts["Climate Widget"].firstMatch.tap() }
+        sleep(2)
+        shot(springboard, "9-sizes")
+        let add = springboard.descendants(matching: .any).matching(NSPredicate(format: "label CONTAINS '위젯 추가'")).firstMatch
+        XCTAssertTrue(add.waitForExistence(timeout: 5))
+        add.tap()
+        sleep(2)
+        let done = springboard.buttons["완료"]
+        if done.waitForExistence(timeout: 3) { done.tap() }
+        sleep(4)
+        shot(springboard, "9-home-widget")
+    }
+    @MainActor private func shot(_ app: XCUIApplication, _ name: String) {
+        let attachment = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
+        attachment.name = name; attachment.lifetime = .keepAlways; add(attachment)
+    }
     /// Shows the Lock Screen so the Live Activity can be inspected. Uses the simulator's lock button.
     @MainActor func testLiveActivityOnLockScreen() throws {
         let app = XCUIApplication()

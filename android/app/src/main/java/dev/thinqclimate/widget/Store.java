@@ -173,6 +173,16 @@ final class Store {
             e.commit();
         }
     }
+    /** Updates names and drops deleted devices without starting a new generation, so in-flight results stay valid. */
+    void renameDevices(List<Climate.Device> merged) {
+        synchronized (RefreshWorker.LOCK) {
+            Set<String> keep = new HashSet<>(); for (Climate.Device d : merged) keep.add(d.id());
+            SharedPreferences.Editor e = prefs.edit().putString("devices", encodeDevices(merged));
+            for (Climate.Device old : devices()) if (!keep.contains(old.id()))
+                e.remove(key("reading",old.id())).remove(key("error",old.id())).remove(key("attempt",old.id())).remove(key("state",old.id())).remove(key("energy",old.id()));
+            e.commit();
+        }
+    }
     Climate.Device device(String id) { for (Climate.Device d : devices()) if (d.id().equals(id)) return d; return null; }
     void reading(String id, Climate.Reading r) throws JSONException {
         JSONObject o = new JSONObject().put("t",r.temperature()).put("h",r.humidity()).put("at",r.fetchedAt());
@@ -215,9 +225,33 @@ final class Store {
             prefs.edit().putString("widget:"+widgetId,new JSONArray(clean).toString()).commit();
         }
     }
+    /** Options for one appliance timer widget. */
+    record TimerOptions(boolean selectedOnly, List<String> devices, int max, String pinned, boolean alerts, WidgetStyle style) {
+        static TimerOptions defaults() { return new TimerOptions(false, List.of(), 3, "", true, WidgetStyle.defaults()); }
+    }
+    TimerOptions timerOptions(int id) {
+        try {
+            JSONObject o = new JSONObject(prefs.getString("timer:"+id, "{}"));
+            if (!o.has("max")) return TimerOptions.defaults();
+            List<String> ids = new ArrayList<>(); JSONArray a = o.optJSONArray("devices");
+            if (a != null) for (int i=0;i<a.length();i++) ids.add(a.getString(i));
+            return new TimerOptions(o.optBoolean("selectedOnly"), List.copyOf(ids), Math.max(1, Math.min(3, o.getInt("max"))), o.optString("pinned"),
+                o.optBoolean("alerts", true), WidgetStyle.decode(o.optString("style")));
+        } catch (JSONException e) { return TimerOptions.defaults(); }
+    }
+    void timerOptions(int id, TimerOptions t) throws JSONException {
+        prefs.edit().putString("timer:"+id, new JSONObject().put("selectedOnly",t.selectedOnly()).put("devices",new JSONArray(t.devices()))
+            .put("max",t.max()).put("pinned",t.pinned()).put("alerts",t.alerts()).put("style",t.style().encode()).toString()).commit();
+    }
+    List<Climate.Device> appliances() {
+        List<Climate.Device> r = new ArrayList<>();
+        for (Climate.Device d : devices()) { dev.thinqclimate.core.Home.Status s = status(d.id());
+            if (dev.thinqclimate.core.Home.isAppliance(d.type()) || (s != null && !s.cycles().isEmpty())) r.add(d); }
+        return r;
+    }
     WidgetStyle widgetStyle(int id) { return WidgetStyle.decode(prefs.getString("style:"+id,"")); }
     void widgetStyle(int id, WidgetStyle style) { prefs.edit().putString("style:"+id,style.encode()).commit(); }
-    void deleteWidget(int id) { prefs.edit().remove("widget:"+id).remove("style:"+id).commit(); }
+    void deleteWidget(int id) { prefs.edit().remove("widget:"+id).remove("style:"+id).remove("timer:"+id).commit(); }
     void restoreWidget(int oldId, int newId) {
         if (prefs.contains("style:"+oldId)) prefs.edit().putString("style:"+newId,prefs.getString("style:"+oldId,"")).remove("style:"+oldId).commit();
         if (prefs.contains("widget:"+oldId)) prefs.edit().putString("widget:"+newId,prefs.getString("widget:"+oldId,"[]")).remove("widget:"+oldId).commit();

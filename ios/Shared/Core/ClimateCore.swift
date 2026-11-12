@@ -44,6 +44,15 @@ struct ThinQDevice: Identifiable, Equatable, Codable {
     let type: String
     init(id: String, name: String, type: String = "DEVICE_HUMIDIFIER") { self.id = id; self.name = name; self.type = type }
     var typeName: String { HomeCatalog.name(type) }
+    /// Keeps the person's selection and order, but takes current names and types from ThinQ and drops deleted devices.
+    /// New devices are not added here; they appear in the device picker through the catalog.
+    static func merge(selected: [ThinQDevice], found: [ThinQDevice]) -> [ThinQDevice] {
+        guard !found.isEmpty else { return selected }
+        return selected.compactMap { old in
+            if DemoData.isDemo(old.id) { return old }
+            return found.first { $0.id == old.id }
+        }
+    }
     static func parse(_ response: Any) throws -> [ThinQDevice] {
         guard let list = response as? [Any] else { throw ThinQError.invalidResponse }
         var result: [ThinQDevice] = []
@@ -187,7 +196,7 @@ struct RGB: Equatable {
 struct WidgetStyle: Equatable {
     let background: RGB, accent: RGB, opacity: Int
     init(background: RGB, accent: RGB, opacity: Int = 100) {
-        self.background = background; self.accent = accent; self.opacity = max(40, min(100, opacity))
+        self.background = background; self.accent = accent; self.opacity = max(0, min(100, opacity))
     }
     static let names = ["아이보리", "포레스트", "슬레이트", "오션", "라벤더", "피치"]
     static let presets = [

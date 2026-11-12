@@ -70,6 +70,10 @@ public final class CoreTest {
     public static void main(String[] args) throws Exception {
         sharedFixtures();
         energyFixtures();
+        var selected=List.of(new Climate.Device("fan","존 아마","DEVICE_AIR_PURIFIER_FAN"),new Climate.Device("hum","가습기"),new Climate.Device("gone","삭제됨","DEVICE_WASHER"));
+        var found=List.of(new Climate.Device("new","새 기기","DEVICE_DRYER"),new Climate.Device("hum","하이드로타워"),new Climate.Device("fan","공기청정기","DEVICE_AIR_PURIFIER_FAN"));
+        check(Climate.merge(selected,found).equals(List.of(new Climate.Device("fan","공기청정기","DEVICE_AIR_PURIFIER_FAN"),new Climate.Device("hum","하이드로타워"))),"renamed devices keep selection and order");
+        check(Climate.merge(selected,List.of()).equals(selected),"empty answer keeps selection");
         var c = new Climate.Config(" test-pat "," kr ","kic","climate-test");
         check(Climate.Comfort.of(null)==Climate.Comfort.UNKNOWN,"comfort unknown");
         check(Climate.Comfort.of(39.9)==Climate.Comfort.DRY,"comfort dry");
