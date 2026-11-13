@@ -90,3 +90,12 @@ jobs:
       build_number: ${{ vars.IOS_BUILD_NUMBER || '' }}
       notes: ${{ format('Climate Widget {0} 새 버전입니다.', github.ref_name) }}
     secrets: inherit
+  appstore:
+    # After the build is processed and on TestFlight, submit the same build for App Store review.
+    if: vars.APPSTORE_ENABLED == 'true'
+    needs: ios
+    uses: ./.github/workflows/appstore.yml
+    with:
+      build_number: ${{ needs.ios.outputs.build_number }}
+      notes: ${{ format('Climate Widget {0} 업데이트입니다.', github.ref_name) }}
+    secrets: inherit

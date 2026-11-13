@@ -22,6 +22,24 @@ notify() {
 }
 owner="@${OWNER:-}"
 link="${IOS_TESTFLIGHT_URL:-}"
+
+# App Store review: one issue when a version goes on sale or is rejected.
+read -r store_state store_version app_id < <(python3 scripts/appstore.py state 2>/dev/null || echo NONE)
+echo "Newest App Store version state: $store_state (${store_version:-none})"
+case "$store_state" in
+  READY_FOR_SALE|READY_FOR_DISTRIBUTION)
+    notify "App Store $store_version 출시됨" "$owner App Store 심사가 승인되어 Climate Widget $store_version이 출시됐어요.
+
+App Store 링크: https://apps.apple.com/app/id$app_id
+이제 누구나 App Store에서 검색하거나 이 링크로 설치할 수 있어요.
+
+이 이슈는 알림용이라 닫아도 됩니다." ;;
+  REJECTED|METADATA_REJECTED|INVALID_BINARY)
+    notify "App Store $store_version 심사 거절됨" "$owner App Store 심사에서 Climate Widget $store_version이 거절됐어요.
+
+거절 사유는 App Store Connect → 앱 → 왼쪽 위 App Review(또는 iOS 앱 버전 화면의 메시지)에서 확인할 수 있어요.
+TestFlight 공개 링크는 이와 무관하게 계속 동작합니다." ;;
+esac
 case "$state" in
   APPROVED)
     notify "TestFlight 빌드 $build 승인됨" "$owner TestFlight 빌드 $build의 베타 심사가 승인됐어요.

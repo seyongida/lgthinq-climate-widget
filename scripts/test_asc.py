@@ -341,11 +341,13 @@ class RenewTests(unittest.TestCase):
 class WatcherTests(unittest.TestCase):
     """Runs watch-review.sh with fake gh and asc commands to check its decisions."""
 
-    def run_watch(self, state, build='9', runs='', issues='', devices='true', certificate='true', key='x', firebase='true'):
+    def run_watch(self, state, build='9', runs='', issues='', devices='true', certificate='true', key='x', firebase='true', store=None):
         temp = Path(tempfile.mkdtemp())
         self.addCleanup(shutil.rmtree, temp)
         (temp / 'scripts').mkdir()
         (temp / 'scripts/asc.py').write_text(f'print("{state} {build}")\n')
+        if store:
+            (temp / 'scripts/appstore.py').write_text(f'print("{store}")\n')
         (temp / 'bin').mkdir()
         gh = temp / 'bin/gh'
         gh.write_text(f'#!/bin/bash\necho "$*" >> "{temp}/gh.log"\n'
@@ -358,6 +360,16 @@ class WatcherTests(unittest.TestCase):
                                      'HAS_DEVICES': devices, 'HAS_CERTIFICATE': certificate, 'HAS_FIREBASE': firebase})
         log = (temp / 'gh.log').read_text() if (temp / 'gh.log').exists() else ''
         return result, 'workflow run ios-adhoc.yml' in log, log
+
+    def test_app_store_release_and_rejection_notify_once(self):
+        result, started, log = self.run_watch('WAITING_FOR_REVIEW', store='READY_FOR_SALE 1.5.0 123')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('issue create --title App Store 1.5.0 출시됨', log)
+        self.assertIn('apps.apple.com/app/id123', log)
+        result, _, log = self.run_watch('WAITING_FOR_REVIEW', store='REJECTED 1.5.0 123', issues='App Store 1.5.0 심사 거절됨\\n')
+        self.assertNotIn('issue create', log)
+        result, _, log = self.run_watch('WAITING_FOR_REVIEW', store='WAITING_FOR_REVIEW 1.5.0 123')
+        self.assertNotIn('issue create', log)
 
     def test_approval_opens_one_issue_mentioning_the_owner(self):
         result, started, log = self.run_watch('APPROVED')

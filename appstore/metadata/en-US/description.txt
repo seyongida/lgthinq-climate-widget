@@ -1,0 +1,30 @@
+See your home at a glance — in one screen and in widgets — without opening each appliance in the ThinQ app.
+
+Home now
+Average humidity and temperature from your air appliances, whether it is comfortable (40–60% humidity), air quality and PM2.5.
+
+Finishing soon
+A to-the-second countdown for washers, dryers, stylers, dishwashers and ovens, also as a Live Activity on the Lock Screen and in the Dynamic Island.
+
+Needs attention
+Laundry left after a cycle, an open fridge door, or an appliance error.
+
+Energy use
+This month's electricity use per appliance compared with the same period last month (supported models only).
+
+Widgets
+• Air widget: small, medium and Lock Screen sizes, with a device and color for each widget.
+• Appliance timer widget: countdowns keep running without a network. Choose which appliances and how many to show.
+
+Try it without an LG account
+Tap "Try with sample data" on the first screen to explore every screen and widget.
+
+Getting started
+Create a ThinQ Connect Personal Access Token (PAT) with device list and status permissions on LG's PAT page, using your ThinQ account, and enter it in the app. Add the energy permission to see electricity use.
+
+Privacy and safety
+• Read-only: the app never turns appliances on or off or changes their settings.
+• Your token stays in the device Keychain and the app talks to LG directly. There is no developer server, no ads, no analytics, and no data collection.
+
+Only appliances supported by ThinQ Connect appear, and available values vary by model and region. The app is currently in Korean.
+This is not an official LG Electronics app and is not affiliated with LG Electronics. LG and ThinQ are trademarks of LG Electronics.

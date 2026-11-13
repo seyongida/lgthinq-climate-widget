@@ -112,6 +112,20 @@ python3 scripts/asc.py import-devices --apple --only "iPhone 13 mini" --key ~/Do
 
 `v*` 태그로 릴리즈하면 Firebase에도 자동 배포되고, TestFlight 심사가 거절되면 감시 워크플로가 한 번 빌드를 보냅니다. 친구 iPhone에서 설정 → 개인정보 보호 및 보안 → 개발자 모드를 켜야 할 수 있습니다. Apple 계정은 1년에 iPhone 100대까지 등록할 수 있습니다.
 
+### App Store 공개 배포
+
+TestFlight와 같은 빌드를 App Store에도 올립니다. 앱은 무료이고 광고가 없습니다.
+
+- 스토어 문구는 `appstore/metadata/<언어>/`(설명, 부제, 키워드, 홍보 문구, 업데이트 내용), 심사 메모는 `appstore/review_notes.txt`에 있습니다. 키워드에는 다른 회사 상표(LG, ThinQ)를 넣지 않습니다.
+- 스크린샷은 `bash scripts/store-screenshots.sh`가 샘플 데이터 모드로 iPhone 6.9"와 iPad 13" 시뮬레이터에서 찍어 `appstore/screenshots/`에 저장합니다. 화면이 바뀌면 다시 실행해 커밋합니다.
+- `Submit iOS to the App Store` 워크플로(`scripts/appstore.py publish`)가 카테고리(유틸리티), 연령 등급, 무료 가격, 전체 국가, 스토어 문구, 스크린샷, 심사 연락처를 채우고 심사에 제출합니다. 승인되면 자동으로 출시됩니다.
+- `APPSTORE_ENABLED=true`이면 릴리즈 태그마다 TestFlight 업로드 뒤 같은 빌드를 App Store 심사에 제출합니다. 이미 출시된 버전 번호로는 제출할 수 없으므로 `MARKETING_VERSION`을 올려야 합니다.
+- 심사 결과는 `Watch TestFlight review`가 매시간 확인해 "App Store 1.5.0 출시됨" 또는 "심사 거절됨" 이슈를 만들어 메일로 알립니다.
+
+API로 할 수 없어 App Store Connect 웹에서 한 번만 하는 일:
+1. 앱 → 앱 개인정보 보호(App Privacy) → 시작하기 → "데이터를 수집하지 않음" → 게시.
+2. 비즈니스(Business) → 규정 준수(Compliance) → Digital Services Act에서 EU 판매자(Trader) 여부 신고. Trader가 아니면 EU에는 배포되지 않습니다.
+
 ### GitHub에 저장하는 값 한눈에 보기
 
 직접 입력하지 말고 표의 명령으로 저장하세요. 명령이 형식과 실제 접근 가능 여부를 확인한 뒤 저장합니다. 예시는 형식만 보여 주며 실제 값이 아닙니다.
@@ -130,6 +144,8 @@ python3 scripts/asc.py import-devices --apple --only "iPhone 13 mini" --key ~/Do
 | `FIREBASE_SERVICE_ACCOUNT_BASE64` | Secret | `ewogICJ0eXBlIjog…` (JSON 키의 base64) | Firebase → 프로젝트 설정 → 서비스 계정. JSON의 `project_id`가 프로젝트 설정의 **프로젝트 ID**와 같아야 합니다 | `asc.py firebase` |
 | `FIREBASE_IOS_APP_ID` | Variable | `1:439215807830:ios:9e873ad3…` | Firebase → 프로젝트 설정 → 일반 → 내 앱 → 앱 ID. 가운데 숫자가 **프로젝트 번호**입니다 | `asc.py firebase` |
 | `FIREBASE_GROUPS` | Variable | `friends` | Firebase → App Distribution → 테스터 및 그룹 → 그룹 별칭 | `asc.py firebase --groups` |
+| `APPSTORE_REVIEW_CONTACT` | Secret | `{"firstName":"길동","lastName":"홍","phone":"+821000000000","email":"me@example.com"}` | App Store 심사관만 보는 연락처(공개되지 않음) | `gh secret set APPSTORE_REVIEW_CONTACT` |
+| `APPSTORE_ENABLED` | Variable | `true` | 릴리즈 태그마다 App Store 심사에 자동 제출할지 | `gh variable set` |
 | `ANDROID_KEYSTORE_BASE64` 외 3개 | Secret | keystore의 base64, 암호, alias | 로컬 `android/keystore/release.jks`, `.env.signing` | 위 Android 서명 절 참고 |
 
 키 파일과 앱 ID가 같은 프로젝트인지 직접 확인하려면 Firebase 프로젝트 설정 → 일반에서 **프로젝트 ID**(JSON의 `project_id`와 비교)와 **프로젝트 번호**(앱 ID 가운데 숫자와 비교)를 보면 됩니다.
