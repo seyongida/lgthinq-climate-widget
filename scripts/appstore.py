@@ -142,19 +142,17 @@ def set_app_info(client, app, locales):
 
 
 def set_free_everywhere(client, app):
-    if optional(client, f'/v1/apps/{app}/appPriceSchedule'):
-        log('Price already set')
-    else:
-        points = get_all(client, f'/v1/apps/{app}/appPricePoints', filter_territory='KOR', limit=200)
-        free = next(p for p in points if float(p['attributes'].get('customerPrice') or 0) == 0)
-        client.request('POST', '/v1/appPriceSchedules', body={
-            'data': {'type': 'appPriceSchedules', 'relationships': {
-                'app': {'data': {'type': 'apps', 'id': app}},
-                'baseTerritory': {'data': {'type': 'territories', 'id': 'KOR'}},
-                'manualPrices': {'data': [{'type': 'appPrices', 'id': '${free}'}]}}},
-            'included': [{'type': 'appPrices', 'id': '${free}', 'attributes': {'startDate': None},
-                          'relationships': {'appPricePoint': {'data': {'type': 'appPricePoints', 'id': free['id']}}}}]})
-        log('Price: free')
+    # Always (re)write the schedule: posting one replaces any earlier price with free.
+    points = get_all(client, f'/v1/apps/{app}/appPricePoints', filter_territory='KOR', limit=200)
+    free = next(p for p in points if float(p['attributes'].get('customerPrice') or 0) == 0)
+    client.request('POST', '/v1/appPriceSchedules', body={
+        'data': {'type': 'appPriceSchedules', 'relationships': {
+            'app': {'data': {'type': 'apps', 'id': app}},
+            'baseTerritory': {'data': {'type': 'territories', 'id': 'KOR'}},
+            'manualPrices': {'data': [{'type': 'appPrices', 'id': '${free}'}]}}},
+        'included': [{'type': 'appPrices', 'id': '${free}', 'attributes': {'startDate': None},
+                      'relationships': {'appPricePoint': {'data': {'type': 'appPricePoints', 'id': free['id']}}}}]})
+    log('Price: free')
     if optional(client, f'/v1/apps/{app}/appAvailabilityV2'):
         log('Availability already set')
         return

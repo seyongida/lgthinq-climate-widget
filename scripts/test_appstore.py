@@ -120,7 +120,7 @@ class PublishTests(unittest.TestCase):
             {'id': 'v1', 'attributes': {'versionString': '1.5.0', 'appVersionState': 'PREPARE_FOR_SUBMISSION', 'createdDate': '2026-11-01'}}],
             priced=True)
         appstore.publish(client, 'bundle', '9', CONTACT, screenshots=False)
-        self.assertFalse(client.bodies('POST', '/v1/appPriceSchedules'))
+        self.assertEqual(len(client.bodies('POST', '/v1/appPriceSchedules')), 1, 'The price is always reset to free')
         self.assertFalse(client.bodies('POST', '/v2/appAvailabilities'))
         ko = client.bodies('PATCH', '/v1/appStoreVersionLocalizations/vl-ko')[0]['data']['attributes']
         self.assertEqual(ko['whatsNew'], 'ko release_notes')
