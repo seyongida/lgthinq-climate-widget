@@ -26,7 +26,7 @@ AGE_NONE = ['alcoholTobaccoOrDrugUseOrReferences', 'contests', 'gamblingSimulate
             'sexualContentGraphicAndNudity', 'sexualContentOrNudity', 'violenceCartoonOrFantasy', 'violenceRealistic',
             'violenceRealisticProlongedGraphicOrSadistic']
 AGE_FALSE = ['advertising', 'ageAssurance', 'gambling', 'healthOrWellnessTopics', 'lootBox', 'messagingAndChat',
-             'parentalControls', 'unrestrictedWebAccess', 'userGeneratedContent']
+             'parentalControls', 'socialMedia', 'unrestrictedWebAccess', 'userGeneratedContent']
 
 
 def log(*parts):
