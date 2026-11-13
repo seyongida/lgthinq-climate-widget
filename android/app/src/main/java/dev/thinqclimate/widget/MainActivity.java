@@ -18,7 +18,7 @@ public final class MainActivity extends Activity {
     private final Handler handler=new Handler(Looper.getMainLooper());
     private LinearLayout content, deviceList, cyclesSection, cyclesList, alertsSection, alertsList, climateSection, grid, energySection, energyCard;
     private TextView energyLabel;
-    private TextView connection,headline,averageHumidity,averageTemperature;
+    private TextView connection,headline,averageHumidity,averageTemperature,sampleBadge;
     private LinearLayout hero;
     private Ui.Gauge heroGauge;
     private ScrollView scroll;
@@ -41,7 +41,10 @@ public final class MainActivity extends Activity {
         ImageView gear=Ui.icon(this,R.drawable.ic_settings,Ui.INK,Color.WHITE,44,.52f,false);gear.setContentDescription("연결 설정");gear.setOnClickListener(v->settings());top.addView(gear);content.addView(top);
         Ui.gap(content,18);
         LinearLayout heroCard=Ui.column(this);heroCard.setPadding(Ui.dp(this,22),Ui.dp(this,22),Ui.dp(this,22),Ui.dp(this,22));heroCard.setClipToOutline(true);heroCard.setElevation(Ui.dp(this,6));hero=heroCard;
-        heroCard.addView(Ui.text(this,"지금 우리 집은",15,0xd9ffffff,false));Ui.gap(heroCard,4);
+        LinearLayout heroTop=Ui.row(this);Ui.weighted(heroTop,Ui.text(this,"지금 우리 집은",15,0xd9ffffff,false));
+        // Sample values must never be mistaken for real readings.
+        sampleBadge=Ui.text(this,"샘플 데이터 · 실제 값이 아닙니다",11,Ui.INK,true);sampleBadge.setPadding(Ui.dp(this,10),Ui.dp(this,5),Ui.dp(this,10),Ui.dp(this,5));
+        sampleBadge.setBackground(Ui.background(this,Color.WHITE,14));heroTop.addView(sampleBadge);heroCard.addView(heroTop);Ui.gap(heroCard,4);
         headline=Ui.text(this,"",31,Color.WHITE,true);heroCard.addView(headline);Ui.gap(heroCard,14);
         LinearLayout numbers=Ui.row(this);numbers.setGravity(android.view.Gravity.BOTTOM);
         LinearLayout humidityColumn=Ui.column(this);averageHumidity=Ui.text(this,"—",68,Color.WHITE,true);humidityColumn.addView(averageHumidity);humidityColumn.addView(Ui.text(this,"평균 습도",12,0xd9ffffff,false));numbers.addView(humidityColumn);
@@ -63,7 +66,7 @@ public final class MainActivity extends Activity {
         LinearLayout controls=Ui.row(this);Ui.weighted(controls,Ui.text(this,"모든 기기",21,Ui.INK,true));
         controls.addView(Ui.pill(this,"기기 선택",v->discover(true,false)));content.addView(controls);
         Ui.gap(content,12);grid=Ui.column(this);content.addView(grid);Ui.gap(content,6);
-        Button refresh=Ui.button(this,"↻  지금 새로고침",true,v->{RefreshWorker.refresh(this);Toast.makeText(this,"갱신 요청 · 1분 이내 요청은 합쳐집니다",Toast.LENGTH_SHORT).show();});
+        Button refresh=Ui.button(this,"↻  지금 새로고침",true,v->{if(store.demo()){store.fillDemo(System.currentTimeMillis());snapshot="";updateCards();}RefreshWorker.refresh(this);Toast.makeText(this,"갱신 요청 · 1분 이내 요청은 합쳐집니다",Toast.LENGTH_SHORT).show();});
         content.addView(refresh);Ui.gap(content,34);
         content.addView(Ui.text(this,"홈 화면 위젯",21,Ui.INK,true));Ui.gap(content,4);
         content.addView(Ui.text(this,"공기 위젯은 눌러서 기기와 색상을 바꿀 수 있어요",14,Ui.MUTED,false));Ui.gap(content,16);
@@ -84,7 +87,8 @@ public final class MainActivity extends Activity {
                 // Older builds listed only climate devices; rediscover once so appliances appear too.
                 if(newBuild || store.catalog().isEmpty() || !store.catalogIsCurrent()) discover(false,newBuild || store.devices().isEmpty() || !store.catalogIsCurrent());
                 else RefreshWorker.refresh(this);
-            } else {connection.setText("연결 설정을 시작해 주세요");onboarding=true;if(saved==null)settings();}
+            } else if(store.demo()) {store.fillDemo(System.currentTimeMillis());RefreshWorker.schedule(this);snapshot="";updateCards();}
+            else {connection.setText("연결 설정을 시작해 주세요");onboarding=true;if(saved==null)settings();}
         } catch(Exception e) { connection.setText("연결 설정을 확인해 주세요"); }
     }
     private String signature() {
@@ -228,8 +232,9 @@ public final class MainActivity extends Activity {
             List<CycleWidget.Item> cycles=CycleWidget.active(store);int alertCount=0;for(Climate.Device d:devices){Home.Status s=store.status(d.id());if(s!=null)alertCount+=s.alerts().size();}
             headline.setText(alertCount>0?"확인할 일이 있어요":"모두 평온해요");
         } else headline.setText(comfort.headline());
+        boolean demo=store.demo();sampleBadge.setVisibility(demo?View.VISIBLE:View.GONE);
         if(!busy) {
-            String text=devices.isEmpty()?"표시할 기기를 선택해 주세요":"기기 "+devices.size()+"대";
+            String text=devices.isEmpty()?"표시할 기기를 선택해 주세요":(demo?"체험 모드 · 샘플 기기 ":"기기 ")+devices.size()+"대";
             if(worst!=null)text="공기질 "+Home.AIR_LEVELS.get(worst)+(pm==null?"":" · PM2.5 최고 "+Math.round(pm)+"㎍/㎥")+"\n"+text;
             connection.setText(latest==null?text:text+" · "+DateFormat.getTimeInstance(DateFormat.SHORT).format(new Date(latest))+" 수신");
         }
@@ -240,6 +245,7 @@ public final class MainActivity extends Activity {
     }
     private void discover(boolean choose,boolean selectAll) {
         if(busy)return;
+        if(store.demo()){if(choose)chooseDevices(dev.thinqclimate.core.Demo.DEVICES);return;}
         final Climate.Config cfg;
         try {cfg=store.config();if(cfg==null){settings();return;}}catch(Exception e){settings();return;}
         busy=true;connection.setText("우리 집 기기를 찾고 있어요…");
@@ -284,10 +290,12 @@ public final class MainActivity extends Activity {
     @Override protected void onActivityResult(int request,int result,Intent data) {
         super.onActivityResult(request,result,data);
         if(request!=CREDENTIALS)return;
-        if(result==RESULT_OK){onboarding=false;selected();}
+        if(result==RESULT_OK){onboarding=false;if(store.demo())store.fillDemo(System.currentTimeMillis());selected();}
+        // The sample was ended: start again from onboarding.
+        else if(result==RESULT_FIRST_USER){startActivity(new Intent(this,MainActivity.class));finish();}
         else if(onboarding){finish();}
     }
-    @Override protected void onResume(){super.onResume();snapshot="";updateCards();handler.post(poll);}
+    @Override protected void onResume(){super.onResume();if(store.demo())store.fillDemo(System.currentTimeMillis());snapshot="";updateCards();handler.post(poll);}
     @Override protected void onPause(){handler.removeCallbacks(poll);super.onPause();}
     @Override protected void onDestroy(){handler.removeCallbacks(poll);executor.shutdownNow();super.onDestroy();}
 }

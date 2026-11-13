@@ -36,6 +36,21 @@ git push origin v1.5.0
 
 `Mobile CI`의 Debug APK는 검사/개발용이며, 일반 사용자는 Releases의 공개 APK를 사용합니다. CI에는 `.env`가 없으므로 Debug 산출물에도 개발자 토큰이 없습니다.
 
+## Google Play 배포
+
+패키지 이름은 GitHub APK와 같은 `dev.thinqclimate.widget.release`입니다. Play 앱 서명에 기존 배포 키를 올리면 GitHub에서 설치한 사람도 지우지 않고 Play 버전으로 업데이트할 수 있습니다.
+
+- 스토어 문구는 `play/metadata/ko-KR/`, 이미지는 `play/images/ko-KR/`(아이콘 512, 그래픽 이미지 1024×500, 휴대폰 스크린샷)에 있습니다. 그래픽은 `swift scripts/generate-play-graphics.swift ios/App/Assets.xcassets/AppIcon.appiconset/AppIcon.png play/images/ko-KR`로 다시 만듭니다.
+- 릴리즈 태그는 APK와 함께 `.aab`을 만들고, `PLAY_ENABLED=true`이면 `PLAY_TRACK`(기본 비공개 테스트)에 올리며 스토어 문구와 이미지를 맞춥니다. 문구만 바꿀 때는 `Update Google Play listing` 워크플로를 실행합니다.
+- 2023년 11월 이후 만든 개인 개발자 계정은 **비공개 테스트에 테스터 12명 이상이 14일 연속 참여**해야 프로덕션(공개) 출시를 신청할 수 있습니다.
+- Play 심사관은 LG 계정이 없으므로 앱 액세스 안내에 **샘플 데이터로 체험하기**를 적습니다.
+
+Play Console에서 한 번만 하는 일(API로 할 수 없음):
+1. 개발자 계정 등록($25, 본인 인증), 앱 만들기(기본 언어 한국어, 앱, 무료).
+2. 첫 `.aab`을 비공개 테스트 트랙에 직접 업로드하고 Play 앱 서명을 설정합니다.
+3. 앱 콘텐츠: 개인정보처리방침 URL, 앱 액세스, 광고(없음), 콘텐츠 등급 설문, 타겟층(18세 이상), 데이터 보안, 정부 앱(아니요), 금융 기능(없음), 건강(없음).
+4. Google Cloud에서 서비스 계정과 키를 만들고 Play Console → 사용자 및 권한에서 초대한 뒤 `python3 scripts/play.py save-key`로 저장합니다.
+
 ## iOS 배포 준비
 
 일반 iPhone에 APK처럼 IPA 파일만 다운로드해 설치시키는 방식은 사용할 수 없습니다. 이 프로젝트의 공개 배포 경로는 **TestFlight 공개 초대 링크**입니다. Apple Developer Program, App Store Connect 앱 등록, 두 Bundle ID와 App Group, App Store 배포 인증서와 두 프로비저닝 프로파일이 필요합니다. 외부 테스트는 Apple의 TestFlight 심사와 공개 그룹/초대 링크 설정도 필요합니다.
@@ -146,6 +161,9 @@ API로 할 수 없어 App Store Connect 웹에서 한 번만 하는 일:
 | `FIREBASE_GROUPS` | Variable | `friends` | Firebase → App Distribution → 테스터 및 그룹 → 그룹 별칭 | `asc.py firebase --groups` |
 | `APPSTORE_REVIEW_CONTACT` | Secret | `{"firstName":"길동","lastName":"홍","phone":"+821000000000","email":"me@example.com"}` | App Store 심사관만 보는 연락처(공개되지 않음) | `gh secret set APPSTORE_REVIEW_CONTACT` |
 | `APPSTORE_ENABLED` | Variable | `true` | 릴리즈 태그마다 App Store 심사에 자동 제출할지 | `gh variable set` |
+| `PLAY_SERVICE_ACCOUNT_BASE64` | Secret | `ewogICJ0eXBlIjog…` (JSON 키의 base64) | Google Cloud → IAM 및 관리자 → 서비스 계정 → 키. Play Console → 사용자 및 권한에서 이 계정을 초대해야 합니다 | `python3 scripts/play.py save-key 키.json` |
+| `PLAY_ENABLED` | Variable | `true` | 릴리즈 태그마다 Google Play에 올릴지 | `gh variable set` |
+| `PLAY_TRACK` | Variable | `alpha` | 올릴 트랙: `internal`, `alpha`(비공개 테스트), `beta`(공개 테스트), `production` | `gh variable set` |
 | `ANDROID_KEYSTORE_BASE64` 외 3개 | Secret | keystore의 base64, 암호, alias | 로컬 `android/keystore/release.jks`, `.env.signing` | 위 Android 서명 절 참고 |
 
 키 파일과 앱 ID가 같은 프로젝트인지 직접 확인하려면 Firebase 프로젝트 설정 → 일반에서 **프로젝트 ID**(JSON의 `project_id`와 비교)와 **프로젝트 번호**(앱 ID 가운데 숫자와 비교)를 보면 됩니다.

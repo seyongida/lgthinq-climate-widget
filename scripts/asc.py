@@ -299,10 +299,10 @@ def prepare_adhoc(client, signing_dir, team, bundle, certificate_id, devices_tex
     return len(device_ids)
 
 
-def google_token(key):
+def google_token(key, scope='https://www.googleapis.com/auth/cloud-platform'):
     """OAuth token for a Google service account key, signed with the system openssl."""
     now = int(time.time())
-    claims = {'iss': key['client_email'], 'scope': 'https://www.googleapis.com/auth/cloud-platform',
+    claims = {'iss': key['client_email'], 'scope': scope,
               'aud': key['token_uri'], 'iat': now, 'exp': now + 600}
     signing_input = b64url(json.dumps({'alg': 'RS256', 'typ': 'JWT'}).encode()) + '.' + b64url(json.dumps(claims).encode())
     with tempfile.NamedTemporaryFile('w', delete=False) as handle:

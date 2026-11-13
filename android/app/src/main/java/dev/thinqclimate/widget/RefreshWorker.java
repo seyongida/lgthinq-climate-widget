@@ -16,6 +16,12 @@ public final class RefreshWorker extends Worker {
         final Climate.Config config;
         final String generation;
         final List<Climate.Device> devices;
+        if (store.demo()) {
+            store.fillDemo(System.currentTimeMillis());
+            ClimateWidget.renderAll(context); CycleWidget.renderAll(context); CycleNotifier.sync(context);
+            checkAfterNextFinish(context, store);
+            return Result.success();
+        }
         synchronized (LOCK) {
             try { config = store.config(); }
             catch (Exception e) {

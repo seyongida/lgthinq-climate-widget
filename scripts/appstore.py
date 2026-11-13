@@ -258,6 +258,12 @@ def store_state(client, bundle_id):
 
 def publish(client, bundle_id, build_number, contact, submit=True, screenshots=True, notes=''):
     app = client.get('/v1/apps', filter_bundleId=bundle_id, limit=1)[0]['id']
+    busy = [v for v in client.get(f'/v1/apps/{app}/appStoreVersions', filter_platform='IOS', limit=20)
+            if version_state(v['attributes']) in ('WAITING_FOR_REVIEW', 'IN_REVIEW', 'PENDING_DEVELOPER_RELEASE', 'PROCESSING_FOR_APP_STORE')]
+    if busy:
+        a = busy[0]['attributes']
+        log(f"Skipped: version {a['versionString']} is still {version_state(a)}. Submit again after it is released.")
+        return
     build_number = build_number or latest_valid_build(client, app)
     build, version_string = find_build(client, app, build_number)
     primary = client.request('GET', f'/v1/apps/{app}')['data']['attributes'].get('primaryLocale', 'ko')
