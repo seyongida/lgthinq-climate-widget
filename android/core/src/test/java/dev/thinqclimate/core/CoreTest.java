@@ -67,9 +67,25 @@ public final class CoreTest {
         var c=new Climate.Config("p","KR","kic","test");
         check(c.energyEndpoint("a/b?","20261101","20261111").toString().equals("https://api-kic.lgthinq.com/devices/energy/a%2Fb%3F/usage?property=energyUsage&period=DAILY&startDate=20261101&endDate=20261111"),"energy URL");
     }
+    /** The sample home must look like a real one: climate values, a live countdown, an alert and a reservation. */
+    static void demo() {
+        long now=1_794_542_113_000L;
+        var states=new LinkedHashMap<String,Home.Status>();
+        for(Climate.Device d:Demo.DEVICES) states.put(d.type(),Home.parse(Demo.state(d,now),d.type(),now));
+        check(Demo.DEVICES.stream().allMatch(d->Demo.isDemo(d.id()))&&!Demo.isDemo("real-id"),"demo ids");
+        Home.Status hum=states.get("DEVICE_HUMIDIFIER");
+        check(hum.hasClimate()&&hum.humidity()>=40&&hum.humidity()<=60&&hum.pm25()!=null,"demo climate "+hum);
+        Home.Status washer=states.get("DEVICE_WASHER");Long end=washer.endsAt(washer.primaryCycle());
+        check(end!=null&&end-now>=300_000&&end-now<=2_700_000,"demo washer counts down "+washer);
+        check(!states.get("DEVICE_DRYER").alerts().isEmpty(),"demo dryer asks for attention");
+        check(states.get("DEVICE_DISH_WASHER").primaryCycle().phase()==Home.Phase.RESERVED,"demo dishwasher reserved");
+        Energy.Window w=Energy.window(java.time.LocalDate.of(2026,11,13));
+        check(Demo.energy(Demo.DEVICES.get(5),w,now).current()==11_400&&Demo.energy(Demo.DEVICES.get(0),w,now)==null,"demo energy");
+    }
     public static void main(String[] args) throws Exception {
         sharedFixtures();
         energyFixtures();
+        demo();
         var selected=List.of(new Climate.Device("fan","존 아마","DEVICE_AIR_PURIFIER_FAN"),new Climate.Device("hum","가습기"),new Climate.Device("gone","삭제됨","DEVICE_WASHER"));
         var found=List.of(new Climate.Device("new","새 기기","DEVICE_DRYER"),new Climate.Device("hum","하이드로타워"),new Climate.Device("fan","공기청정기","DEVICE_AIR_PURIFIER_FAN"));
         check(Climate.merge(selected,found).equals(List.of(new Climate.Device("fan","공기청정기","DEVICE_AIR_PURIFIER_FAN"),new Climate.Device("hum","하이드로타워"))),"renamed devices keep selection and order");

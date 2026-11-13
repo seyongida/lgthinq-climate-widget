@@ -18,7 +18,7 @@ jobs:
           java-version: '17'
       - uses: gradle/actions/setup-gradle@v4
       - name: Install SDK
-        run: '"$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-35" "build-tools;35.0.0"'
+        run: '"$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-36" "build-tools;35.0.0"'
       - name: Restore distribution signing key
         env:
           KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
@@ -41,7 +41,7 @@ jobs:
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
           THINQ_PAT: ''
-        run: ./gradlew :core:check :app:testReleaseUnitTest :app:lintRelease :app:assembleRelease --console=plain
+        run: ./gradlew :core:check :app:testReleaseUnitTest :app:lintRelease :app:assembleRelease :app:bundleRelease --console=plain
       - name: Verify credentials, version and signature
         run: |
           python3 scripts/verify-release.py android/app/build/outputs/apk/release/app-release.apk --version "$GITHUB_REF_NAME"
@@ -54,6 +54,12 @@ jobs:
         with:
           name: public-android-release
           path: release-assets/*
+          retention-days: 14
+      # The Play bundle is uploaded to Google Play only, not attached to the public release.
+      - uses: actions/upload-artifact@v4
+        with:
+          name: play-bundle
+          path: android/app/build/outputs/bundle/release/app-release.aab
           retention-days: 14
       - name: Remove signing key
         if: always()
@@ -99,3 +105,19 @@ jobs:
       build_number: ${{ needs.ios.outputs.build_number }}
       notes: ${{ format('Climate Widget {0} 업데이트입니다.', github.ref_name) }}
     secrets: inherit
+  play:
+    # Google Play testing track (closed testing by default); turn on with PLAY_ENABLED=true.
+    if: vars.PLAY_ENABLED == 'true'
+    needs: android
+    runs-on: ubuntu-24.04
+    env:
+      PLAY_SERVICE_ACCOUNT_BASE64: ${{ secrets.PLAY_SERVICE_ACCOUNT_BASE64 }}
+      PLAY_TRACK: ${{ vars.PLAY_TRACK }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/download-artifact@v4
+        with:
+          name: play-bundle
+          path: play-bundle
+      - name: Upload to Google Play
+        run: python3 scripts/play.py upload play-bundle/app-release.aab --notes "Climate Widget $GITHUB_REF_NAME"

@@ -87,7 +87,7 @@ public class ClimateWidget extends AppWidgetProvider {
         v.setTextViewText(R.id.device_name,d==null?"기기 선택  +":d.name());
         v.setTextViewText(R.id.temperature,r==null?"—":compact(r.temperature(),"°"));
         v.setTextViewText(R.id.humidity,r==null?"—":compact(r.humidity(),"%"));
-        String status=d==null?"눌러서 설정":r==null?"수신 대기 ↻":new java.text.SimpleDateFormat("HH:mm",Locale.KOREA).format(new Date(r.fetchedAt()))+" ↻";
+        String status=d==null?"눌러서 설정":r==null?"수신 대기 ↻":(dev.thinqclimate.core.Demo.isDemo(id)?"샘플 ":"")+new java.text.SimpleDateFormat("HH:mm",Locale.KOREA).format(new Date(r.fetchedAt()))+" ↻";
         if(!error.isEmpty())status="연결 오류 ↻";
         else if(r!=null&&r.stale(System.currentTimeMillis()))status="오래됨 ↻";
         v.setTextViewText(R.id.status,status);

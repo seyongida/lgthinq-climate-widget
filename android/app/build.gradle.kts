@@ -18,11 +18,11 @@ fun signingValue(key: String) = System.getenv(key) ?: signingEnv[key] ?: ""
 fun javaString(value: String) = "\"" + value.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n").replace("\r", "\\r") + "\""
 android {
     namespace = "dev.thinqclimate.widget"
-    compileSdk = 35
+    compileSdk = 36
     defaultConfig {
-        applicationId = "dev.thinqclimate.widget"; minSdk = 26; targetSdk = 35
+        applicationId = "dev.thinqclimate.widget"; minSdk = 26; targetSdk = 36
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        versionCode = 7; versionName = "1.5.0"
+        versionCode = 8; versionName = "1.6.0"
         manifestPlaceholders["appLabel"] = "Climate Widget"
         // Public builds always start with empty credentials, including builds on a PC with .env.
         buildConfigField("String", "THINQ_PAT", javaString(""))

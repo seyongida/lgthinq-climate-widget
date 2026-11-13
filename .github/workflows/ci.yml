@@ -18,10 +18,10 @@ jobs:
           distribution: temurin
           java-version: '17'
       - name: Install required Android SDK packages
-        run: '"$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platform-tools" "platforms;android-35" "build-tools;35.0.0"'
+        run: '"$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platform-tools" "platforms;android-36" "build-tools;35.0.0"'
       - uses: gradle/actions/setup-gradle@v4
         with:
-          gradle-version: '8.9'
+          gradle-version: '8.13'
       - name: Core contracts, HTTP contracts, lint, APK
         working-directory: android
         run: ./gradlew :core:check :app:testDebugUnitTest :app:testReleaseUnitTest :app:lintDebug :app:lintRelease :app:assembleDebug :app:assembleRelease --stacktrace
@@ -47,10 +47,10 @@ jobs:
           distribution: temurin
           java-version: '17'
       - name: Install required Android SDK packages
-        run: '"$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platform-tools" "platforms;android-35" "build-tools;35.0.0"'
+        run: '"$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platform-tools" "platforms;android-36" "build-tools;35.0.0"'
       - uses: gradle/actions/setup-gradle@v4
         with:
-          gradle-version: '8.9'
+          gradle-version: '8.13'
       - name: Enable KVM
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
@@ -58,7 +58,7 @@ jobs:
           sudo udevadm trigger --name-match=kvm
       - uses: reactivecircus/android-emulator-runner@v2
         with:
-          api-level: 35
+          api-level: 36
           arch: x86_64
           disable-animations: true
           script: cd android && ./gradlew :app:connectedDebugAndroidTest --stacktrace
@@ -74,7 +74,7 @@ jobs:
       - name: Swift core tests
         run: swift test --package-path ios
       - name: Distribution tooling tests
-        run: python3 scripts/test_asc.py && python3 scripts/test_appstore.py
+        run: python3 scripts/test_asc.py && python3 scripts/test_appstore.py && python3 scripts/test_play.py
       - name: Generate Xcode project
         run: brew install xcodegen && cd ios && xcodegen generate
       - name: Build app and embedded WidgetKit extension

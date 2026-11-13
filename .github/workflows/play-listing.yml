@@ -1,0 +1,15 @@
+name: Update Google Play listing
+# Pushes the texts and images in play/ to the Google Play store listing.
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  listing:
+    runs-on: ubuntu-24.04
+    env:
+      PLAY_SERVICE_ACCOUNT_BASE64: ${{ secrets.PLAY_SERVICE_ACCOUNT_BASE64 }}
+    steps:
+      - uses: actions/checkout@v5
+      - name: Sync listing
+        run: python3 scripts/play.py listing

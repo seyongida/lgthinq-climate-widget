@@ -74,8 +74,34 @@ final class Store {
             return true;
         }
     }
+    /** True while the on-device sample home is shown instead of an LG account. */
+    boolean demo() { return prefs.getBoolean("demo", false) && !prefs.contains("secret"); }
+    void startDemo() {
+        synchronized (RefreshWorker.LOCK) {
+            prefs.edit().clear().putBoolean("demo", true).commit();
+            catalog(dev.thinqclimate.core.Demo.DEVICES);
+            selectDevices(dev.thinqclimate.core.Demo.DEVICES);
+            fillDemo(System.currentTimeMillis());
+        }
+    }
+    /** Writes fresh sample states; no network. */
+    void fillDemo(long now) {
+        synchronized (RefreshWorker.LOCK) {
+            if (!demo()) return;
+            dev.thinqclimate.core.Energy.Window w = dev.thinqclimate.core.Energy.window(java.time.LocalDate.now());
+            for (Climate.Device d : devices()) {
+                if (!dev.thinqclimate.core.Demo.isDemo(d.id())) continue;
+                try {
+                    status(d.id(), dev.thinqclimate.core.Demo.state(d, now), now);
+                    dev.thinqclimate.core.Energy.Usage u = dev.thinqclimate.core.Demo.energy(d, w, now);
+                    if (u != null) energy(d.id(), u);
+                } catch (JSONException ignored) { /* Sample data is fixed and always serializable. */ }
+            }
+        }
+    }
     void replaceCredentials(Climate.Config config, List<Climate.Device> discovered) throws Exception {
         synchronized (RefreshWorker.LOCK) {
+            if (demo()) prefs.edit().clear().commit();
             config(config);
             SharedPreferences.Editor edit=prefs.edit();
             for(String key:prefs.getAll().keySet())

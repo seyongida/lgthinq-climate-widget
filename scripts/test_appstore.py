@@ -133,6 +133,12 @@ class PublishTests(unittest.TestCase):
             appstore.publish(client, 'bundle', '9', CONTACT)
         self.assertIn('MARKETING_VERSION', str(caught.exception))
 
+    def test_version_in_review_blocks_a_new_submission(self):
+        client = FakeClient(versions=[
+            {'id': 'v1', 'attributes': {'versionString': '1.5.0', 'appVersionState': 'WAITING_FOR_REVIEW', 'createdDate': '2026-11-01'}}])
+        appstore.publish(client, 'bundle', '9', CONTACT)
+        self.assertFalse([c for c in client.calls if c[0] != 'GET'], 'Nothing is changed while a version is in review')
+
     def test_waiting_submission_is_left_alone(self):
         client = FakeClient(priced=True, open_submission={'id': 'rs', 'attributes': {'state': 'WAITING_FOR_REVIEW'}})
         appstore.publish(client, 'bundle', '9', CONTACT, screenshots=False)

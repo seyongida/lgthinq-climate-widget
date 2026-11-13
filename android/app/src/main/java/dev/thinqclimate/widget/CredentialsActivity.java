@@ -26,9 +26,19 @@ public final class CredentialsActivity extends Activity {
         try{existing=store.config();}catch(Exception ignored){/* New input can replace unreadable credentials. */}
         LinearLayout outer=Ui.column(this);ScrollView scroll=new ScrollView(this);outer.addView(scroll);Ui.window(this,outer);
         LinearLayout content=Ui.column(this);content.setPadding(Ui.dp(this,20),Ui.dp(this,28),Ui.dp(this,20),Ui.dp(this,32));scroll.addView(content);
+        boolean demo=store.demo(),first=existing==null&&!demo;
         content.addView(Ui.logo(this,54));Ui.gap(content,18);
-        content.addView(Ui.text(this,existing==null?"우리 집 공기를\n한눈에 확인하세요":"연결 설정",30,Ui.INK,true));Ui.gap(content,12);
-        content.addView(Ui.text(this,existing==null?"LG ThinQ 가습기와 공기청정기의 온도와 습도를 앱과 위젯에서 보여 드려요.":"새 토큰으로 언제든 연결을 바꿀 수 있어요.\n저장된 토큰은 화면에 표시하지 않습니다.",14,Ui.MUTED,false));Ui.gap(content,24);
+        content.addView(Ui.text(this,first?"우리 집 공기를\n한눈에 확인하세요":"연결 설정",30,Ui.INK,true));Ui.gap(content,12);
+        content.addView(Ui.text(this,first?"LG ThinQ 가습기와 공기청정기의 온도와 습도를 앱과 위젯에서 보여 드려요.":demo?"지금은 샘플 데이터로 체험 중이에요. 토큰을 연결하면 내 기기로 바뀝니다.":"새 토큰으로 언제든 연결을 바꿀 수 있어요.\n저장된 토큰은 화면에 표시하지 않습니다.",14,Ui.MUTED,false));Ui.gap(content,24);
+        if(first){
+            LinearLayout sample=Ui.card(this,android.graphics.Color.WHITE);
+            sample.addView(Ui.text(this,"LG 계정 없이 둘러보기",16,Ui.INK,true));Ui.gap(sample,6);
+            sample.addView(Ui.text(this,"샘플 값으로 앱과 위젯을 확인합니다. 네트워크를 쓰지 않으며 실제 측정값이 아닙니다.",13,Ui.MUTED,false));Ui.gap(sample,14);
+            sample.addView(Ui.button(this,"샘플 데이터로 체험하기",true,v->startDemo()));
+            content.addView(sample);Ui.gap(content,24);
+            content.addView(Ui.text(this,"내 계정 연결",16,Ui.INK,true));Ui.gap(content,12);
+        }
+        if(demo){content.addView(Ui.button(this,"체험 끝내기",false,v->endDemo()));Ui.gap(content,24);}
         content.addView(Ui.button(this,"LG에서 토큰 발급하기",false,v->startActivity(new Intent(Intent.ACTION_VIEW,Uri.parse("https://connect-pat.lgthinq.com")))));Ui.gap(content,20);
         content.addView(Ui.text(this,existing==null?"Personal Access Token":"새 Personal Access Token",13,Ui.INK,true));Ui.gap(content,8);
         token=new EditText(this);token.setHint(existing==null?"발급받은 토큰 입력":"토큰을 바꾸려면 새 토큰 입력");
@@ -39,8 +49,14 @@ public final class CredentialsActivity extends Activity {
         region=new Spinner(this);region.setAdapter(new ArrayAdapter<>(this,android.R.layout.simple_spinner_dropdown_item,new String[]{"kic · 한국/아시아","aic · 미주","eic · 유럽/기타"}));region.setBackground(Ui.touch(this,android.graphics.Color.WHITE,14,true));region.setPadding(Ui.dp(this,12),Ui.dp(this,12),Ui.dp(this,12),Ui.dp(this,12));
         if(existing!=null)region.setSelection(List.of("kic","aic","eic").indexOf(existing.region()));content.addView(region);Ui.gap(content,18);
         status=Ui.text(this,"토큰 권한은 기기 목록·상태 조회가 필요하고, 에너지 사용량 조회를 더하면 전기 사용량도 보여 드려요. 제어 권한은 필요 없어요.\n토큰은 이 휴대폰의 암호화 저장소에 보관합니다.",12,Ui.MUTED,false);content.addView(status);Ui.gap(content,20);
-        connect=Ui.button(this,existing==null?"연결하고 시작하기":"연결 확인 후 저장",true,v->save());content.addView(connect);Ui.gap(content,12);
+        connect=Ui.button(this,existing==null?"연결하고 시작하기":"연결 확인 후 저장",!first,v->save());content.addView(connect);Ui.gap(content,12);
         content.addView(Ui.button(this,"취소",false,v->finish()));
+    }
+    private void startDemo(){
+        if(busy)return;store.startDemo();ClimateWidget.renderAll(this);CycleWidget.renderAll(this);RefreshWorker.schedule(this);setResult(RESULT_OK);finish();
+    }
+    private void endDemo(){
+        store.clear();ClimateWidget.renderAll(this);CycleWidget.renderAll(this);CycleNotifier.sync(this);setResult(RESULT_FIRST_USER);finish();
     }
     private void field(LinearLayout parent,EditText field){field.setTextSize(14);field.setTextColor(Ui.INK);field.setBackground(Ui.touch(this,android.graphics.Color.WHITE,14,true));field.setPadding(Ui.dp(this,14),Ui.dp(this,14),Ui.dp(this,14),Ui.dp(this,14));parent.addView(field);}
     private void save() {
