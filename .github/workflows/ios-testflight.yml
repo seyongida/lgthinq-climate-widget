@@ -11,6 +11,10 @@ on:
         required: false
         default: ''
   workflow_call:
+    outputs:
+      build_number:
+        description: 'The uploaded build number'
+        value: ${{ jobs.upload.outputs.build_number }}
     inputs:
       build_number:
         type: string

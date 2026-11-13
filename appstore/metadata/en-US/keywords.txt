@@ -1,0 +1,1 @@
+humidifier,air purifier,humidity,temperature,washer,dryer,dishwasher,timer,lock screen,pm2.5,energy

@@ -105,6 +105,51 @@ final class DemoModeUITests: XCTestCase {
         sleep(4)
         shot(springboard, "9-home-widget")
     }
+    /// App Store screenshots from the sample home. Skipped unless STORE_SHOTS is set; scripts/store-screenshots.sh runs it.
+    @MainActor func testStoreScreenshots() throws {
+        guard ProcessInfo.processInfo.environment["STORE_SHOTS"] == "1" else { throw XCTSkip("Store screenshots are manual") }
+        let app = XCUIApplication()
+        app.launch()
+        let start = app.buttons["startDemo"]
+        XCTAssertTrue(start.waitForExistence(timeout: 15))
+        shot(app, "store-5-welcome")
+        start.tap()
+        XCTAssertTrue(app.descendants(matching: .any)["cycle"].firstMatch.waitForExistence(timeout: 10))
+        sleep(2)
+        shot(app, "store-1-home")
+        for _ in 0..<4 where !app.descendants(matching: .any)["energy"].firstMatch.isHittable { app.swipeUp() }
+        sleep(1)
+        shot(app, "store-3-energy")
+        for _ in 0..<6 where !app.buttons["tileSmall"].isHittable { app.swipeUp() }
+        app.buttons["tileSmall"].tap()
+        let close = app.buttons["closeGuide"]
+        XCTAssertTrue(close.waitForExistence(timeout: 5))
+        sleep(1)
+        shot(app, "store-4-widgets")
+        close.tap()
+        XCTAssertTrue(close.waitForNonExistence(timeout: 5))
+        for _ in 0..<6 { app.swipeDown() }
+        // Live Activities exist on iPhone only.
+        let device = XCUIDevice.shared
+        let lock = NSSelectorFromString("pressLockButton")
+        if UIDevice.current.userInterfaceIdiom == .phone, device.responds(to: lock) {
+            device.perform(lock)
+            sleep(2)
+            device.press(.home)
+            sleep(2)
+            let allow = XCUIApplication(bundleIdentifier: "com.apple.springboard").buttons["허용"]
+            if allow.waitForExistence(timeout: 3) { allow.tap() }
+            sleep(3)
+            shot(app, "store-2-lock-screen")
+            device.press(.home); sleep(1); device.press(.home)
+            app.activate()
+        }
+        app.buttons["openSettings"].tap()
+        let end = app.buttons["disconnect"]
+        XCTAssertTrue(end.waitForExistence(timeout: 5))
+        for _ in 0..<6 where !end.isHittable { app.swipeUp() }
+        end.tap()
+    }
     @MainActor private func shot(_ app: XCUIApplication, _ name: String) {
         let attachment = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
         attachment.name = name; attachment.lifetime = .keepAlways; add(attachment)

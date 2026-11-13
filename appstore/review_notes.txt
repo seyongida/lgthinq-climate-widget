@@ -1,0 +1,9 @@
+This app shows the status of the user's own LG ThinQ appliances using LG's official ThinQ Connect API (https://smartsolution.developer.lge.com) with a Personal Access Token that each user creates for their own LG account at https://connect-pat.lgthinq.com. It is read-only and never controls appliances. There is no developer server, no ads and no analytics.
+
+To review without an LG account: on the first screen tap "샘플 데이터로 체험하기" (Try with sample data). Every feature works with on-device sample data:
+- Home: air summary, appliance countdowns ("곧 끝나요"), alerts, energy use.
+- Lock Screen Live Activity: a sample washer is always running; lock the device to see its countdown (allow Live Activities if asked).
+- Widgets: long-press the Home Screen > Edit > Add Widget > Climate Widget. The in-app "위젯" section shows a guide.
+To leave the sample, open Settings (gear icon) and tap the end button.
+
+The app is not affiliated with LG Electronics; it only uses the public API LG offers to individual users for their own devices.

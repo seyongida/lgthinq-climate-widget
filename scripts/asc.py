@@ -61,7 +61,8 @@ class Client:
                 data = response.read()
         except urllib.error.HTTPError as error:
             try:
-                titles = [e.get('title', '') for e in json.loads(error.read()).get('errors', [])]
+                titles = [' '.join(filter(None, [e.get('title', ''), e.get('detail', '')]))[:300]
+                          for e in json.loads(error.read()).get('errors', [])]
             except ValueError:
                 titles = []
             raise SystemExit(f'App Store Connect {method} {path} failed: HTTP {error.code} {"; ".join(titles)}')

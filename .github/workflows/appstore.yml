@@ -1,0 +1,54 @@
+name: Submit iOS to the App Store
+# Fills in the App Store listing from appstore/ and submits a processed build for review.
+# The app is released automatically once Apple approves it.
+on:
+  workflow_dispatch:
+    inputs:
+      build_number:
+        description: 'Build number. Leave empty for the newest processed build.'
+        required: false
+        default: ''
+      notes:
+        description: "What's New (Korean) for an update; ignored for the first release"
+        required: false
+        default: ''
+      submit:
+        description: 'Submit for review (off: only update the listing)'
+        type: boolean
+        default: true
+  workflow_call:
+    inputs:
+      build_number:
+        type: string
+        required: false
+        default: ''
+      notes:
+        type: string
+        required: false
+        default: ''
+permissions:
+  contents: read
+concurrency:
+  group: appstore
+  cancel-in-progress: false
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    env:
+      IOS_BUNDLE_ID: ${{ vars.IOS_BUNDLE_ID || 'dev.thinqclimate.widget' }}
+      ASC_API_KEY_P8_BASE64: ${{ secrets.ASC_API_KEY_P8_BASE64 }}
+      ASC_API_KEY_ID: ${{ secrets.ASC_API_KEY_ID }}
+      ASC_API_ISSUER_ID: ${{ secrets.ASC_API_ISSUER_ID }}
+      APPSTORE_REVIEW_CONTACT: ${{ secrets.APPSTORE_REVIEW_CONTACT }}
+      BUILD: ${{ inputs.build_number }}
+      NOTES: ${{ inputs.notes }}
+      SUBMIT: ${{ github.event_name != 'workflow_dispatch' || inputs.submit }}
+    steps:
+      - uses: actions/checkout@v5
+      - name: Fill in the listing and submit
+        run: |
+          args=(publish)
+          [[ -n "$BUILD" ]] && args+=(--build "$BUILD")
+          [[ -n "$NOTES" ]] && args+=(--notes "$NOTES")
+          [[ "$SUBMIT" == "true" ]] || args+=(--no-submit)
+          python3 scripts/appstore.py "${args[@]}"

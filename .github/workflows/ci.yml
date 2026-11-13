@@ -74,7 +74,7 @@ jobs:
       - name: Swift core tests
         run: swift test --package-path ios
       - name: Distribution tooling tests
-        run: python3 scripts/test_asc.py
+        run: python3 scripts/test_asc.py && python3 scripts/test_appstore.py
       - name: Generate Xcode project
         run: brew install xcodegen && cd ios && xcodegen generate
       - name: Build app and embedded WidgetKit extension
