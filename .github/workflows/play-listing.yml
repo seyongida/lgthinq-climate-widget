@@ -1,7 +1,13 @@
 name: Update Google Play listing
 # Pushes the texts and images in play/ to the Google Play store listing.
+# "prepare" enables the Play Developer API and checks that Play Console access was granted.
 on:
   workflow_dispatch:
+    inputs:
+      mode:
+        type: choice
+        options: [listing, prepare]
+        default: listing
 permissions:
   contents: read
 jobs:
@@ -9,7 +15,8 @@ jobs:
     runs-on: ubuntu-24.04
     env:
       PLAY_SERVICE_ACCOUNT_BASE64: ${{ secrets.PLAY_SERVICE_ACCOUNT_BASE64 }}
+      FIREBASE_SERVICE_ACCOUNT_BASE64: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_BASE64 }}
     steps:
       - uses: actions/checkout@v5
-      - name: Sync listing
-        run: python3 scripts/play.py listing
+      - name: Run
+        run: python3 scripts/play.py "${{ inputs.mode || 'listing' }}"

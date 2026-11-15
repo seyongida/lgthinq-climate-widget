@@ -112,6 +112,7 @@ jobs:
     runs-on: ubuntu-24.04
     env:
       PLAY_SERVICE_ACCOUNT_BASE64: ${{ secrets.PLAY_SERVICE_ACCOUNT_BASE64 }}
+      FIREBASE_SERVICE_ACCOUNT_BASE64: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_BASE64 }}
       PLAY_TRACK: ${{ vars.PLAY_TRACK }}
     steps:
       - uses: actions/checkout@v5

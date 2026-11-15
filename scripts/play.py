@@ -110,12 +110,37 @@ def upload_bundle(play, edit, bundle, track, notes):
 
 
 def load_key(path):
+    """The Play key, or the Firebase service account already saved for iOS distribution."""
     if path:
         return json.loads(Path(path).expanduser().read_text())
-    raw = os.environ.get('PLAY_SERVICE_ACCOUNT_BASE64', '')
+    raw = os.environ.get('PLAY_SERVICE_ACCOUNT_BASE64') or os.environ.get('FIREBASE_SERVICE_ACCOUNT_BASE64', '')
     if not raw:
-        raise SystemExit('Missing PLAY_SERVICE_ACCOUNT_BASE64')
+        raise SystemExit('Missing PLAY_SERVICE_ACCOUNT_BASE64 (or FIREBASE_SERVICE_ACCOUNT_BASE64)')
     return json.loads(base64.b64decode(raw, validate=True))
+
+
+def prepare(key, package):
+    """Turns on the Play Developer API in the key's project and reports whether Play Console access is granted."""
+    project, email = key.get('project_id', ''), key.get('client_email', '')
+    print('Service account to invite in Play Console:', email)
+    url = f'https://serviceusage.googleapis.com/v1/projects/{project}/services/androidpublisher.googleapis.com:enable'
+    request = urllib.request.Request(url, method='POST', data=b'{}')
+    request.add_header('Authorization', 'Bearer ' + asc.google_token(key))
+    request.add_header('Content-Type', 'application/json')
+    try:
+        urllib.request.urlopen(request, timeout=60).read()
+        print('Google Play Android Developer API: enabled')
+    except urllib.error.HTTPError as error:
+        print(f'Google Play Android Developer API: could not enable (HTTP {error.code}). Enable it here: '
+              f'https://console.cloud.google.com/apis/library/androidpublisher.googleapis.com?project={project}')
+    play = Play(asc.google_token(key, SCOPE), package)
+    try:
+        play.call('DELETE', f'{play.base}/edits/{play.edit()}')
+        print(f'Play Console access to {package}: OK')
+        return True
+    except SystemExit as error:
+        print(f'Play Console access to {package}: not yet ({str(error)[-160:]})')
+        return False
 
 
 def main():
@@ -129,6 +154,7 @@ def main():
     up.add_argument('--notes', default='')
     up.add_argument('--no-listing', action='store_true')
     commands.add_parser('listing', help='Only sync the store listing')
+    commands.add_parser('prepare', help='Enable the API and check Play Console access for the saved key')
     save = commands.add_parser('save-key', help='Check a service account key against the app and save it to GitHub')
     save.add_argument('file')
     args = parser.parse_args()
@@ -142,6 +168,8 @@ def main():
         asc.gh_secret('PLAY_SERVICE_ACCOUNT_BASE64', base64.b64encode(Path(args.file).expanduser().read_bytes()).decode())
         print(f'Saved PLAY_SERVICE_ACCOUNT_BASE64 ({key.get("client_email", "?").split("@")[0]}@…) with access to {args.package}')
         return
+    if args.command == 'prepare':
+        sys.exit(0 if prepare(load_key(args.key), args.package) else 1)
     play = Play(asc.google_token(load_key(args.key), SCOPE), args.package)
     edit = play.edit()
     if args.command == 'upload':
