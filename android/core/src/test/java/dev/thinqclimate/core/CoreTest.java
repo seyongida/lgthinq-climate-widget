@@ -54,6 +54,13 @@ public final class CoreTest {
         check(Math.abs(paused.progress(paused.primaryCycle(),9_000_000L)-29/48.0)<1e-9,"paused progress stays put");
         Home.Status longer=Home.parse(Map.of("runState",Map.of("currentState","RUNNING"),"timer",Map.of("remainMinute",50,"totalMinute",40)),"DEVICE_DISH_WASHER",0L);
         check(longer.progress(longer.primaryCycle(),0L)==null,"no bar when more time is left than the whole program");
+        Home.Status off=Home.parse(Map.of("runState",Map.of("currentState","POWER_OFF"),"timer",Map.of("remainMinute",0)),"DEVICE_DISH_WASHER",1_000_000L);
+        check(off.finishedQuietly(off.primaryCycle(),1_000_000L),"switched off at the expected end counts as finished");
+        check(off.finishedQuietly(off.primaryCycle(),1_050_000L),"switched off within a minute of the expected end counts as finished");
+        check(!off.finishedQuietly(off.primaryCycle(),1_100_000L),"switched off well before the expected end does not");
+        check(!off.finishedQuietly(off.primaryCycle(),null),"switched off without an expected end does not");
+        Home.Status cancelled=Home.parse(Map.of("runState",Map.of("currentState","CANCEL"),"timer",Map.of("remainMinute",0)),"DEVICE_DISH_WASHER",9_000_000L);
+        check(!cancelled.finishedQuietly(cancelled.primaryCycle(),1_000_000L),"a cancelled program never counts as finished");
         Home.Status reserved=Home.parse(fixture("reserved_dish_washer.json"),"DEVICE_DISH_WASHER",0L);
         check(reserved.progress(reserved.primaryCycle(),0L)==null,"reserved programs have not started");
         check(Home.duration(1).equals("1분")&&Home.duration(61).equals("2분")&&Home.duration(3600).equals("1시간")&&Home.duration(3900).equals("1시간 5분"),"durations");

@@ -108,7 +108,7 @@ enum ActiveSheet: String, Identifiable {
         await Refresher.refresh()
         reload()
         WidgetCenter.shared.reloadAllTimelines()
-        await LiveActivities.sync(activeCycles, finished: finishedKeys, enabled: liveActivities)
+        await LiveActivities.sync(activeCycles, finished: finishedKeys, idle: idleCycles, enabled: liveActivities)
         await Refresher.refreshEnergy()
         reload()
     }
@@ -117,10 +117,19 @@ enum ActiveSheet: String, Identifiable {
             (states[device.id]?.status?.cycles ?? []).filter { $0.phase == .done }.map { device.id + "|" + ($0.location ?? "") }
         })
     }
+    /// Programs now seen off, by activity key, so an activity whose expected end has come can say it finished.
+    private var idleCycles: [String: (HomeStatus, CycleStatus)] {
+        var result: [String: (HomeStatus, CycleStatus)] = [:]
+        for device in devices {
+            guard let status = states[device.id]?.status else { continue }
+            for cycle in status.cycles where cycle.phase == .idle { result[device.id + "|" + (cycle.location ?? "")] = (status, cycle) }
+        }
+        return result
+    }
     func setLiveActivities(_ enabled: Bool) async {
         liveActivities = enabled
         store.liveActivitiesEnabled = enabled
-        await LiveActivities.sync(activeCycles, finished: finishedKeys, enabled: enabled)
+        await LiveActivities.sync(activeCycles, finished: finishedKeys, idle: idleCycles, enabled: enabled)
     }
     func requestRefresh() async {
         notice = "갱신 요청 · 1분 이내 요청은 합쳐집니다"
@@ -413,7 +422,7 @@ struct HomeView: View {
                 Countdown(cycle: item.cycle, endsAt: item.endsAt)
                     .font(.system(size: item.endsAt == nil ? 22 : 30, weight: .bold, design: .rounded)).foregroundStyle(Theme.ink).lineLimit(1).minimumScaleFactor(0.6)
             }
-            CycleProgress(startedAt: item.startedAt, endsAt: item.endsAt, tint: Theme.accent, track: Theme.line).padding(.top, 14)
+            CycleProgress(startedAt: item.startedAt, endsAt: item.endsAt, tint: Theme.accent, track: Theme.line, paused: item.pausedProgress).padding(.top, 14)
             Text(CycleText.detail(item) + (item.endsAt == nil ? "" : " · 남은 시간은 예상이에요"))
                 .font(.system(size: 12)).foregroundStyle(Theme.muted).padding(.top, 10)
         }
@@ -584,7 +593,7 @@ struct HomeView: View {
                     Spacer(minLength: 0)
                     Text(item.cycle.label).font(.system(size: 13, weight: .semibold)).foregroundStyle(Theme.accent)
                     Countdown(cycle: item.cycle, endsAt: item.endsAt).font(.system(size: 34, weight: .bold, design: .rounded)).foregroundStyle(Theme.ink).lineLimit(1).minimumScaleFactor(0.5)
-                    CycleProgress(startedAt: item.startedAt, endsAt: item.endsAt, tint: Theme.accent).padding(.vertical, 6)
+                    CycleProgress(startedAt: item.startedAt, endsAt: item.endsAt, tint: Theme.accent, paused: item.pausedProgress).padding(.vertical, 6)
                     Text(CycleText.detail(item)).font(.system(size: 12, weight: .medium)).foregroundStyle(Theme.muted).lineLimit(1)
                 } else {
                     Image(systemName: "washer.fill").font(.system(size: 24)).foregroundStyle(Theme.accent)

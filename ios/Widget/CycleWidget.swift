@@ -163,7 +163,7 @@ struct CycleWidgetView: View {
                 Text(item.cycle.label).font(.system(size: 13, weight: .semibold)).foregroundStyle(accent).lineLimit(1)
                 Countdown(cycle: item.cycle, endsAt: item.endsAt)
                     .font(.system(size: 34, weight: .bold, design: .rounded)).foregroundStyle(ink).lineLimit(1).minimumScaleFactor(0.5)
-                CycleProgress(startedAt: item.startedAt, endsAt: item.endsAt, tint: accent).padding(.vertical, 6)
+                CycleProgress(startedAt: item.startedAt, endsAt: item.endsAt, tint: accent, paused: item.pausedProgress).padding(.vertical, 6)
                 Text(CycleText.detail(item)).font(.system(size: 12, weight: .medium)).foregroundStyle(muted).lineLimit(1)
             }
         } else {
@@ -180,8 +180,8 @@ struct CycleWidgetView: View {
                         icon(item.device.type)
                         VStack(alignment: .leading, spacing: 2) {
                             Text(item.title).font(.system(size: 14, weight: .semibold)).foregroundStyle(ink).lineLimit(1)
-                            CycleProgress(startedAt: item.startedAt, endsAt: item.endsAt, tint: accent)
-                            Text("\(item.cycle.label) · \(CycleText.detail(item))").font(.system(size: 11, weight: .medium)).foregroundStyle(muted).lineLimit(1)
+                            CycleProgress(startedAt: item.startedAt, endsAt: item.endsAt, tint: accent, paused: item.pausedProgress)
+                            Text(CycleText.line(item)).font(.system(size: 11, weight: .medium)).foregroundStyle(muted).lineLimit(1)
                         }
                         Countdown(cycle: item.cycle, endsAt: item.endsAt)
                             .font(.system(size: 22, weight: .bold, design: .rounded)).foregroundStyle(ink)
@@ -255,7 +255,7 @@ struct CycleLiveActivity: Widget {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(context.attributes.title).font(.system(size: 15, weight: .semibold)).foregroundStyle(ink)
                     Text(context.state.label).font(.system(size: 13, weight: .medium)).foregroundStyle(accent)
-                    CycleProgress(startedAt: context.state.startedAt, endsAt: context.state.endsAt, tint: accent)
+                    CycleProgress(startedAt: context.state.startedAt, endsAt: context.state.endsAt, tint: accent, paused: context.state.progress)
                 }
                 activityCountdown(context.state).font(.system(size: 30, weight: .bold, design: .rounded)).foregroundStyle(ink)
                     .frame(minWidth: 86, alignment: .trailing)
@@ -274,7 +274,7 @@ struct CycleLiveActivity: Widget {
                 DynamicIslandExpandedRegion(.bottom) {
                     VStack(alignment: .leading, spacing: 6) {
                         Text(context.state.label).font(.system(size: 13, weight: .medium)).foregroundStyle(.secondary)
-                        CycleProgress(startedAt: context.state.startedAt, endsAt: context.state.endsAt, tint: .mint, track: .white.opacity(0.2))
+                        CycleProgress(startedAt: context.state.startedAt, endsAt: context.state.endsAt, tint: .mint, track: .white.opacity(0.2), paused: context.state.progress)
                     }
                 }
             } compactLeading: {

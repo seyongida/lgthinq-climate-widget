@@ -159,6 +159,16 @@ final class Store {
     void notificationAsked(boolean asked) { prefs.edit().putBoolean("notificationAsked", asked).commit(); }
     Set<String> shownCycles() { return new HashSet<>(prefs.getStringSet("shownCycles", Set.of())); }
     void shownCycles(Set<String> keys) { prefs.edit().putStringSet("shownCycles", new HashSet<>(keys)).commit(); }
+    /** Expected end of each shown program, by notification key, so a later power-off can be told apart from a stop. */
+    Map<String, Long> cycleEnds() {
+        Map<String, Long> ends = new HashMap<>();
+        try {
+            org.json.JSONObject o = new org.json.JSONObject(prefs.getString("cycleEnds", "{}"));
+            for (Iterator<String> i = o.keys(); i.hasNext();) { String k = i.next(); ends.put(k, o.getLong(k)); }
+        } catch (org.json.JSONException ignored) { /* Treat as none. */ }
+        return ends;
+    }
+    void cycleEnds(Map<String, Long> ends) { prefs.edit().putString("cycleEnds", new org.json.JSONObject(ends).toString()).commit(); }
     /** Stores the raw state; climate readings are kept alongside for the climate widgets. */
     void status(String id, Object rawState, long at) throws JSONException {
         Climate.Device d = device(id);

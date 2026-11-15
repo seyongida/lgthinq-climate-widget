@@ -41,6 +41,16 @@ public final class Home {
             double left = c.phase() == Phase.RUNNING ? Math.max(0, fetchedAt + remaining * 1000L - now) / 1000.0 : remaining;
             return Math.max(0, Math.min(1, (total - left) / total));
         }
+        /**
+         * Whether a program that was expected to end at {@code expectedEnd} finished even though the device never
+         * reported it: many dishwashers and dryers switch themselves off right after the end, so the next refresh
+         * sees them off rather than done. Counts only when the device is seen off at or after the expected end
+         * (less one minute, as ThinQ reports whole minutes) and the program was not cancelled.
+         */
+        public boolean finishedQuietly(Cycle c, Long expectedEnd) {
+            return expectedEnd != null && c.phase() == Phase.IDLE && !"CANCEL".equals(c.state())
+                && fetchedAt >= expectedEnd - QUIET_FINISH_GRACE_MS;
+        }
         public String airText() { String l = airLevel == null ? null : AIR_LEVELS.get(airLevel); return l == null ? null : "공기 " + l; }
         public String summary() {
             Cycle c = primaryCycle();
@@ -76,6 +86,9 @@ public final class Home {
             return result;
         }
     }
+
+    /** ThinQ reports remaining time in whole minutes, so a program can end up to a minute before its expected end. */
+    public static final long QUIET_FINISH_GRACE_MS = 60_000L;
 
     public static Status parse(Object state, String type, long now) {
         List<Map<?,?>> parts = new ArrayList<>();

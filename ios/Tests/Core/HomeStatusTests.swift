@@ -39,6 +39,34 @@ final class HomeStatusTests: XCTestCase {
         XCTAssertNil(paused.endsAt(try XCTUnwrap(paused.primaryCycle)), "A paused cycle must not count down")
     }
 
+    func testProgressFollowsTheCountdown() throws {
+        let now = Date(timeIntervalSince1970: 2_000_000)
+        let status = HomeStatus.parse(try json("running_washer.json"), type: "DEVICE_WASHER", now: now)
+        let cycle = try XCTUnwrap(status.primaryCycle)
+        XCTAssertEqual(try XCTUnwrap(status.progress(cycle, at: now)), 35.0 / 58, accuracy: 1e-9)
+        XCTAssertEqual(try XCTUnwrap(status.progress(cycle, at: now.addingTimeInterval(600))), 45.0 / 58, accuracy: 1e-9)
+        XCTAssertEqual(status.progress(cycle, at: now.addingTimeInterval(5000)), 1)
+        let paused = HomeStatus.parse(try json("paused_styler.json"), type: "DEVICE_STYLER", now: now)
+        XCTAssertEqual(try XCTUnwrap(paused.progress(try XCTUnwrap(paused.primaryCycle), at: now.addingTimeInterval(9000))), 29.0 / 48, accuracy: 1e-9,
+                       "A paused program stays where it stopped")
+        let longer = HomeStatus.parse(["runState": ["currentState": "RUNNING"], "timer": ["remainMinute": 50, "totalMinute": 40]] as [String: Any], type: "DEVICE_DISH_WASHER", now: now)
+        XCTAssertNil(longer.progress(try XCTUnwrap(longer.primaryCycle), at: now), "No bar when more time is left than the whole program")
+        let reserved = HomeStatus.parse(try json("reserved_dish_washer.json"), type: "DEVICE_DISH_WASHER", now: now)
+        XCTAssertNil(reserved.progress(try XCTUnwrap(reserved.primaryCycle), at: now))
+    }
+
+    func testSwitchingOffAfterTheExpectedEndCountsAsFinished() throws {
+        let seen = Date(timeIntervalSince1970: 1_000)
+        let off = HomeStatus.parse(["runState": ["currentState": "POWER_OFF"], "timer": ["remainMinute": 0]] as [String: Any], type: "DEVICE_DISH_WASHER", now: seen)
+        let cycle = try XCTUnwrap(off.primaryCycle)
+        XCTAssertTrue(off.finishedQuietly(cycle, expectedEnd: seen))
+        XCTAssertTrue(off.finishedQuietly(cycle, expectedEnd: seen.addingTimeInterval(50)))
+        XCTAssertFalse(off.finishedQuietly(cycle, expectedEnd: seen.addingTimeInterval(100)))
+        XCTAssertFalse(off.finishedQuietly(cycle, expectedEnd: nil))
+        let cancelled = HomeStatus.parse(["runState": ["currentState": "CANCEL"], "timer": ["remainMinute": 0]] as [String: Any], type: "DEVICE_DISH_WASHER", now: seen.addingTimeInterval(9000))
+        XCTAssertFalse(cancelled.finishedQuietly(try XCTUnwrap(cancelled.primaryCycle), expectedEnd: seen))
+    }
+
     func testDurationText() {
         XCTAssertEqual(HomeFormat.duration(1), "1분")
         XCTAssertEqual(HomeFormat.duration(60), "1분")

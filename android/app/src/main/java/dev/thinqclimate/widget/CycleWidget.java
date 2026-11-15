@@ -41,18 +41,24 @@ public class CycleWidget extends AppWidgetProvider {
         RemoteViews views;
         if (Build.VERSION.SDK_INT >= 31) {
             Map<SizeF, RemoteViews> sizes = new LinkedHashMap<>();
-            sizes.put(new SizeF(110, 40), forWidget(c, store, store.timerOptions(id), 1));
-            sizes.put(new SizeF(110, 100), forWidget(c, store, store.timerOptions(id), 2));
-            sizes.put(new SizeF(110, 160), forWidget(c, store, store.timerOptions(id), 3));
+            for (int w : new int[]{110, WIDE}) {
+                sizes.put(new SizeF(w, 40), forWidget(c, store, store.timerOptions(id), 1, w < WIDE));
+                sizes.put(new SizeF(w, 100), forWidget(c, store, store.timerOptions(id), 2, w < WIDE));
+                sizes.put(new SizeF(w, 160), forWidget(c, store, store.timerOptions(id), 3, w < WIDE));
+            }
             views = new RemoteViews(sizes);
         } else {
-            int h = m.getAppWidgetOptions(id).getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 40);
-            views = forWidget(c, store, store.timerOptions(id), h >= 160 ? 3 : h >= 100 ? 2 : 1);
+            Bundle o = m.getAppWidgetOptions(id);
+            int h = o.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 40), w = o.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, 110);
+            views = forWidget(c, store, store.timerOptions(id), h >= 160 ? 3 : h >= 100 ? 2 : 1, w < WIDE);
         }
         m.updateAppWidget(id, views);
     }
+    /** Below this width (dp) rows drop the icon, so the name keeps room next to the time. */
+    static final int WIDE = 220;
+    static RemoteViews forWidget(Context c, Store store, Store.TimerOptions o, int rows) { return forWidget(c, store, o, rows, false); }
     /** Applies one widget's options: which programs, how many, what to show when idle, and colors. */
-    static RemoteViews forWidget(Context c, Store store, Store.TimerOptions o, int rows) {
+    static RemoteViews forWidget(Context c, Store store, Store.TimerOptions o, int rows, boolean narrow) {
         List<Item> items = new ArrayList<>(active(store));
         if (o.selectedOnly()) items.removeIf(i -> !o.devices().contains(i.device().id()));
         List<String[]> alerts = new ArrayList<>();
@@ -61,12 +67,16 @@ public class CycleWidget extends AppWidgetProvider {
             Home.Status s = store.status(d.id()); if (s != null) for (String a : s.alerts()) alerts.add(new String[]{d.type(), d.name(), a});
         }
         Climate.Device pinned = o.pinned().isEmpty() ? null : store.device(o.pinned());
-        return views(c, items, alerts, Math.min(rows, o.max()), pinned, pinned == null ? null : store.status(pinned.id()), o.style());
+        return views(c, items, alerts, Math.min(rows, o.max()), pinned, pinned == null ? null : store.status(pinned.id()), o.style(), narrow);
     }
     static RemoteViews views(Context c, List<Item> items, List<String[]> alerts, int rows) {
         return views(c, items, alerts, rows, null, null, WidgetStyle.defaults());
     }
     static RemoteViews views(Context c, List<Item> items, List<String[]> alerts, int rows, Climate.Device pinned, Home.Status pinnedStatus, WidgetStyle style) {
+        return views(c, items, alerts, rows, pinned, pinnedStatus, style, false);
+    }
+    static RemoteViews views(Context c, List<Item> items, List<String[]> alerts, int rows, Climate.Device pinned, Home.Status pinnedStatus, WidgetStyle style, boolean narrow) {
+        int layout = narrow ? R.layout.cycle_widget_row_narrow : R.layout.cycle_widget_row;
         RemoteViews v = new RemoteViews(c.getPackageName(), R.layout.cycle_widget);
         ClimateWidget.tint(v, R.id.cycle_root, style.surface());
         v.setTextColor(R.id.cycle_empty, style.foreground());
@@ -76,13 +86,13 @@ public class CycleWidget extends AppWidgetProvider {
             if (used == rows) break;
             // When the widget is too short for every program, the last row says how many others are running.
             int hidden = items.size() - (used + 1);
-            v.addView(R.id.cycle_rows, row(c, item, used == rows - 1 && hidden > 0 ? hidden : 0, style)); used++;
+            v.addView(R.id.cycle_rows, row(c, layout, item, used == rows - 1 && hidden > 0 ? hidden : 0, style)); used++;
         }
         if (items.isEmpty() && pinned != null && used < rows) {
             String[] line = {pinned.type(), pinnedStatus == null ? "상태를 기다리고 있어요" : pinnedStatus.summary(), pinned.name()};
-            v.addView(R.id.cycle_rows, alertRow(c, line, style, false)); used++;
+            v.addView(R.id.cycle_rows, alertRow(c, layout, line, style, false)); used++;
         }
-        for (String[] a : alerts) { if (used == rows) break; v.addView(R.id.cycle_rows, alertRow(c, new String[]{a[0], a[2], a[1]}, style, true)); used++; }
+        for (String[] a : alerts) { if (used == rows) break; v.addView(R.id.cycle_rows, alertRow(c, layout, new String[]{a[0], a[2], a[1]}, style, true)); used++; }
         v.setViewVisibility(R.id.cycle_empty, used == 0 ? View.VISIBLE : View.GONE);
         v.setViewVisibility(R.id.cycle_rows, used == 0 ? View.GONE : View.VISIBLE);
         Intent open = new Intent(c, MainActivity.class).setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
@@ -98,12 +108,12 @@ public class CycleWidget extends AppWidgetProvider {
         r.setTextColor(R.id.cycle_static, style.foreground());
         if (Build.VERSION.SDK_INT >= 31) r.setColorStateList(R.id.cycle_progress, "setProgressTintList", android.content.res.ColorStateList.valueOf(style.accent()));
     }
-    private static RemoteViews row(Context c, Item item, int hidden, WidgetStyle style) {
-        RemoteViews r = new RemoteViews(c.getPackageName(), R.layout.cycle_widget_row);
+    private static RemoteViews row(Context c, int layout, Item item, int hidden, WidgetStyle style) {
+        RemoteViews r = new RemoteViews(c.getPackageName(), layout);
         r.setImageViewResource(R.id.cycle_icon, Ui.typeIcon(item.device().type()));
         colors(r, style, style.accent());
         r.setTextViewText(R.id.cycle_name, item.title());
-        r.setTextViewText(R.id.cycle_detail, item.cycle().label() + " · " + Ui.cycleDetail(item.status(), item.cycle()) + (hidden > 0 ? " · 외 " + hidden + "대" : ""));
+        r.setTextViewText(R.id.cycle_detail, detail(item) + (hidden > 0 ? " · 외 " + hidden + "대" : ""));
         Long end = item.endsAt();
         long now = System.currentTimeMillis();
         if (end != null && end > now) {
@@ -111,10 +121,7 @@ public class CycleWidget extends AppWidgetProvider {
             r.setChronometerCountDown(R.id.cycle_timer, true);
             r.setViewVisibility(R.id.cycle_timer, View.VISIBLE); r.setViewVisibility(R.id.cycle_static, View.GONE);
         } else {
-            Home.Cycle cy = item.cycle();
-            String text = end != null ? "곧 끝나요" : cy.phase() == Home.Phase.RESERVED ? (cy.startsIn() == null ? "예약" : Home.duration(cy.startsIn()) + " 후")
-                : cy.remaining() == null ? cy.label() : Home.duration(cy.remaining());
-            r.setTextViewText(R.id.cycle_static, text);
+            r.setTextViewText(R.id.cycle_static, staticTime(item.cycle(), end));
             r.setViewVisibility(R.id.cycle_timer, View.GONE); r.setViewVisibility(R.id.cycle_static, View.VISIBLE);
         }
         // A still picture of the progress at this moment; CycleTicker redraws it while the program runs.
@@ -123,9 +130,23 @@ public class CycleWidget extends AppWidgetProvider {
         r.setContentDescription(R.id.cycle_name, item.title() + ", " + item.cycle().label() + ", " + Ui.cycleDetail(item.status(), item.cycle()));
         return r;
     }
+    /**
+     * What the time box says when there is no live countdown. Kept short: the box is narrow, and the line below
+     * already gives the label and the start time of a scheduled program, so nothing is said twice.
+     */
+    static String staticTime(Home.Cycle cy, Long end) {
+        if (end != null) return "곧 끝나요";
+        if (cy.phase() == Home.Phase.RESERVED) return "예약";
+        return cy.remaining() == null ? "—" : Home.duration(cy.remaining());
+    }
+    /** "세탁 중 · 오후 3:42 완료 예정", without repeating the label when there is nothing else to add. */
+    static String detail(Item item) {
+        String label = item.cycle().label(), more = Ui.cycleDetail(item.status(), item.cycle());
+        return more.equals(label) ? label : label + " · " + more;
+    }
     /** A row without a countdown: an alert ({type, headline, device}) or the idle state of the pinned device. */
-    private static RemoteViews alertRow(Context c, String[] line, WidgetStyle style, boolean warning) {
-        RemoteViews r = new RemoteViews(c.getPackageName(), R.layout.cycle_widget_row);
+    private static RemoteViews alertRow(Context c, int layout, String[] line, WidgetStyle style, boolean warning) {
+        RemoteViews r = new RemoteViews(c.getPackageName(), layout);
         r.setImageViewResource(R.id.cycle_icon, Ui.typeIcon(line[0]));
         colors(r, style, warning ? style.warning() : style.accent());
         r.setTextViewText(R.id.cycle_name, warning ? line[1] : line[2]);

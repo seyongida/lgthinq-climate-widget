@@ -43,8 +43,27 @@ struct HomeStatus: Codable, Equatable {
         return fetchedAt.addingTimeInterval(TimeInterval(remaining))
     }
     func startedAt(_ cycle: CycleStatus) -> Date? {
-        guard let end = endsAt(cycle), let total = cycle.total, total > (cycle.remaining ?? 0) else { return nil }
+        guard let end = endsAt(cycle), let total = cycle.total, total >= (cycle.remaining ?? 0) else { return nil }
         return end.addingTimeInterval(-TimeInterval(total))
+    }
+    /// How much of the program is done at `date`, from 0 to 1, or nil when it cannot be known. A running program
+    /// keeps moving between refreshes; a paused one stays where it stopped. A device that reports more time left than
+    /// the whole program (it added time after starting) has no known start, so it gets no bar rather than a wrong one.
+    func progress(_ cycle: CycleStatus, at date: Date) -> Double? {
+        guard let total = cycle.total, let remaining = cycle.remaining, total > 0, remaining <= total,
+              cycle.phase == .running || cycle.phase == .paused else { return nil }
+        let left = cycle.phase == .running
+            ? max(0, fetchedAt.addingTimeInterval(TimeInterval(remaining)).timeIntervalSince(date)) : TimeInterval(remaining)
+        return min(1, max(0, (TimeInterval(total) - left) / TimeInterval(total)))
+    }
+    /// ThinQ reports remaining time in whole minutes, so a program can end up to a minute before its expected end.
+    static let quietFinishGrace: TimeInterval = 60
+    /// Whether a program expected to end at `expectedEnd` finished even though the device never reported it: many
+    /// dishwashers and dryers switch themselves off right after the end, so the next refresh sees them off, not done.
+    /// Counts only when the device is seen off at or after the expected end (less a minute) and was not cancelled.
+    func finishedQuietly(_ cycle: CycleStatus, expectedEnd: Date?) -> Bool {
+        guard let expectedEnd else { return false }
+        return cycle.phase == .idle && cycle.state != "CANCEL" && fetchedAt >= expectedEnd.addingTimeInterval(-Self.quietFinishGrace)
     }
     var airText: String? { airLevel.flatMap { HomeCatalog.airLevels[$0] }.map { "공기 " + $0 } }
 
