@@ -132,6 +132,7 @@ public final class CycleConfigActivity extends Activity {
         if (o.selectedOnly() && o.devices().isEmpty()) { Toast.makeText(this, "보여 줄 가전을 하나 이상 골라 주세요", Toast.LENGTH_SHORT).show(); return; }
         try { store.timerOptions(widgetId, o); } catch (Exception e) { Toast.makeText(this, "저장하지 못했어요", Toast.LENGTH_SHORT).show(); return; }
         CycleWidget.render(this, widgetId);
+        CycleTicker.refreshAsync(this); // Plans the redraws, e.g. for a widget added after a reboot.
         setResult(RESULT_OK, new Intent().putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, widgetId)); finish();
     }
 }

@@ -40,12 +40,14 @@ final class CycleNotifier {
                 titles.put(key, title);
                 // Done, or switched off once the expected end had come (many dishwashers turn off by themselves).
                 if (cycle.phase() == Home.Phase.DONE || s.finishedQuietly(cycle, ends.get(key))) finished.add(key);
+                // Kept through pauses and "0 minutes left", so a power-off right after the end is recognised.
+                Long expected = s.expectedEnd(cycle, ends.get(key));
+                if (expected != null) nextEnds.put(key, expected);
                 if (!enabled || (cycle.phase() != Home.Phase.RUNNING && cycle.phase() != Home.Phase.PAUSED)) continue;
                 Notification.Builder b = new Notification.Builder(c, CHANNEL).setSmallIcon(Ui.typeIcon(d.type())).setColor(Ui.GREEN)
                     .setContentTitle(title).setOngoing(true).setOnlyAlertOnce(true).setCategory(Notification.CATEGORY_PROGRESS)
                     .setVisibility(Notification.VISIBILITY_PUBLIC).setContentIntent(open);
                 Long end = s.endsAt(cycle);
-                if (end != null) nextEnds.put(key, end);
                 long now = System.currentTimeMillis();
                 if (end != null && end > now) {
                     b.setContentText(cycle.label() + " · " + Ui.time(end) + " 완료 예정").setWhen(end).setShowWhen(true)

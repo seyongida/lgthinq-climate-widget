@@ -11,7 +11,7 @@ public class CycleWidgetTextTest {
     }
     @Test public void timeBoxStaysShortAndNeverRepeatsTheLabel() {
         assertEquals("곧 끝나요", CycleWidget.staticTime(cycle("RUNNING", Map.of("remainMinute", 5)), 1L));
-        assertEquals("예약", CycleWidget.staticTime(cycle("RESERVED", Map.of("relativeHourToStart", 3, "relativeMinuteToStart", 30)), null));
+        assertEquals("3시간 30분 후", CycleWidget.staticTime(cycle("RESERVED", Map.of("relativeHourToStart", 3, "relativeMinuteToStart", 30)), null));
         assertEquals("19분", CycleWidget.staticTime(cycle("PAUSE", Map.of("remainMinute", 19)), null));
         assertEquals("—", CycleWidget.staticTime(cycle("RUNNING", Map.of("remainMinute", 0)), null));
     }

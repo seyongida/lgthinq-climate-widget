@@ -63,6 +63,13 @@ final class HomeStatusTests: XCTestCase {
         XCTAssertTrue(off.finishedQuietly(cycle, expectedEnd: seen.addingTimeInterval(50)))
         XCTAssertFalse(off.finishedQuietly(cycle, expectedEnd: seen.addingTimeInterval(100)))
         XCTAssertFalse(off.finishedQuietly(cycle, expectedEnd: nil))
+        XCTAssertFalse(off.finishedQuietly(cycle, expectedEnd: seen.addingTimeInterval(-16 * 60)), "Seen off long after could be an early stop")
+        XCTAssertTrue(off.finishedQuietly(cycle, expectedEnd: seen.addingTimeInterval(-15 * 60)))
+        XCTAssertNil(off.expectedEnd(cycle, previous: seen), "An idle device has no expected end")
+        let ending = HomeStatus.parse(["runState": ["currentState": "RUNNING"], "timer": ["remainMinute": 0, "totalMinute": 40]] as [String: Any], type: "DEVICE_DISH_WASHER", now: seen)
+        XCTAssertEqual(ending.expectedEnd(try XCTUnwrap(ending.primaryCycle), previous: nil), seen, "No time left means it ends now")
+        let paused = HomeStatus.parse(try json("paused_styler.json"), type: "DEVICE_STYLER", now: seen)
+        XCTAssertEqual(paused.expectedEnd(try XCTUnwrap(paused.primaryCycle), previous: seen), seen, "A pause keeps the earlier expected end")
         let cancelled = HomeStatus.parse(["runState": ["currentState": "CANCEL"], "timer": ["remainMinute": 0]] as [String: Any], type: "DEVICE_DISH_WASHER", now: seen.addingTimeInterval(9000))
         XCTAssertFalse(cancelled.finishedQuietly(try XCTUnwrap(cancelled.primaryCycle), expectedEnd: seen))
     }

@@ -117,6 +117,9 @@ struct CycleActivityAttributes: ActivityAttributes {
         var done: Bool
         /// Progress of a paused program; a running one is drawn live from `startedAt`...`endsAt`.
         var progress: Double? = nil
+        /// When the program should finish, kept through pauses and "no time left" reports so a later
+        /// power-off near this time can be recognised as a finish. Not shown.
+        var expectedEnd: Date? = nil
     }
     var key: String
     var title: String

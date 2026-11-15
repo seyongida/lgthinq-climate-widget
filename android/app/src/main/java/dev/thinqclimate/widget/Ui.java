@@ -149,7 +149,7 @@ final class Ui {
     }
     /** "오후 3:42": a 24-hour "23:04" next to a "23:00" countdown reads as two clock times. Same as iOS ClimateFormat.time. */
     static String time(long millis){return new java.text.SimpleDateFormat("a h:mm",java.util.Locale.KOREA).format(new java.util.Date(millis));}
-    /** "11:04 완료 예정", "12:59 시작 예정", or the state label. */
+    /** "오전 11:04 완료 예정", "오후 12:59 시작 예정", or the state label. Times use {@link #time}. */
     static String cycleDetail(dev.thinqclimate.core.Home.Status s,dev.thinqclimate.core.Home.Cycle c){
         Long end=s.endsAt(c); if(end!=null)return time(end)+" 완료 예정";
         if(c.phase()==dev.thinqclimate.core.Home.Phase.RESERVED&&c.startsIn()!=null)return time(s.fetchedAt()+c.startsIn()*1000L)+" 시작 예정";

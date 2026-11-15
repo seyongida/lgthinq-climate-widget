@@ -15,9 +15,15 @@ import dev.thinqclimate.core.Home;
  */
 public class CycleTicker extends BroadcastReceiver {
     private static final long MIN_STEP = 60_000L, MAX_STEP = 5 * 60_000L;
+    /** Also receives boot and app updates, which clear alarms, so a program already running keeps being redrawn. */
     @Override public void onReceive(Context c, Intent intent) {
         PendingResult result = goAsync();
         new Thread(() -> { try { refresh(c); } finally { result.finish(); } }).start();
+    }
+    /** For the main thread: the redraw reads and writes preferences and may wait for a tick in progress. */
+    static void refreshAsync(Context c) {
+        Context app = c.getApplicationContext();
+        new Thread(() -> refresh(app)).start();
     }
     /** Redraws everything that shows a countdown and plans the next redraw. */
     static void refresh(Context c) {
@@ -31,7 +37,10 @@ public class CycleTicker extends BroadcastReceiver {
     static void schedule(Context c) {
         Store store = new Store(c);
         long now = System.currentTimeMillis();
-        Long next = next(store, now);
+        // Nobody would see a redraw: no timer widget and no countdown notifications.
+        boolean widgets = android.appwidget.AppWidgetManager.getInstance(c).getAppWidgetIds(new ComponentName(c, CycleWidget.class)).length > 0;
+        boolean notices = store.liveUpdates() && CycleNotifier.permitted(c);
+        Long next = widgets || notices ? next(store, now) : null;
         AlarmManager alarms = c.getSystemService(AlarmManager.class);
         PendingIntent tick = PendingIntent.getBroadcast(c, 9, new Intent(c, CycleTicker.class), PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
         if (next == null) { alarms.cancel(tick); return; }

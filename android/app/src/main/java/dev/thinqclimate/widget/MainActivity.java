@@ -134,7 +134,7 @@ public final class MainActivity extends Activity {
             store.notificationAsked(true);requestPermissions(new String[]{android.Manifest.permission.POST_NOTIFICATIONS},42);
         }
     }
-    @Override public void onRequestPermissionsResult(int code,String[] permissions,int[] results){super.onRequestPermissionsResult(code,permissions,results);if(code==42)CycleTicker.refresh(this);}
+    @Override public void onRequestPermissionsResult(int code,String[] permissions,int[] results){super.onRequestPermissionsResult(code,permissions,results);if(code==42)CycleTicker.refreshAsync(this);}
     private void updateEnergy(List<Climate.Device> devices) {
         List<Climate.Device> rows=new ArrayList<>();for(Climate.Device d:devices){dev.thinqclimate.core.Energy.Usage u=store.energy(d.id());if(u!=null&&u.current()>0)rows.add(d);}
         rows.sort((a,b)->Integer.compare(store.energy(b.id()).current(),store.energy(a.id()).current()));
@@ -284,7 +284,7 @@ public final class MainActivity extends Activity {
             .setPositiveButton("선택 완료",(dialog,which)->{List<Climate.Device> next=new ArrayList<>();for(int i=0;i<checked.length;i++)if(checked[i])next.add(devices.get(i));store.selectDevices(next);selected();})
             .setNegativeButton("취소",(d,w)->{snapshot="";updateCards();}).setOnCancelListener(d->{snapshot="";updateCards();}).show();
     }
-    private void selected(){snapshot="";updateCards();ClimateWidget.renderAll(this);CycleTicker.refresh(this);RefreshWorker.schedule(this);RefreshWorker.refresh(this);}
+    private void selected(){snapshot="";updateCards();ClimateWidget.renderAll(this);CycleTicker.refreshAsync(this);RefreshWorker.schedule(this);RefreshWorker.refresh(this);}
     private void pin(Class<? extends android.appwidget.AppWidgetProvider> provider) {
         if(provider!=CycleWidget.class&&store.climateDevices().isEmpty()){Toast.makeText(this,"온도·습도를 보여 주는 기기가 없어요",Toast.LENGTH_SHORT).show();return;}
         AppWidgetManager manager=AppWidgetManager.getInstance(this);

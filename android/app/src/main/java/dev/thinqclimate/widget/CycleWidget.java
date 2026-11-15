@@ -38,19 +38,17 @@ public class CycleWidget extends AppWidgetProvider {
     static void render(Context c, int id) {
         AppWidgetManager m = AppWidgetManager.getInstance(c);
         Store store = new Store(c);
+        Content content = content(store, store.timerOptions(id));
         RemoteViews views;
         if (Build.VERSION.SDK_INT >= 31) {
             Map<SizeF, RemoteViews> sizes = new LinkedHashMap<>();
-            for (int w : new int[]{110, WIDE}) {
-                sizes.put(new SizeF(w, 40), forWidget(c, store, store.timerOptions(id), 1, w < WIDE));
-                sizes.put(new SizeF(w, 100), forWidget(c, store, store.timerOptions(id), 2, w < WIDE));
-                sizes.put(new SizeF(w, 160), forWidget(c, store, store.timerOptions(id), 3, w < WIDE));
-            }
+            for (int w : new int[]{110, WIDE}) for (int rows = 1; rows <= 3; rows++)
+                sizes.put(new SizeF(w, rows == 1 ? 40 : rows == 2 ? 100 : 160), content.views(c, rows, w < WIDE));
             views = new RemoteViews(sizes);
         } else {
             Bundle o = m.getAppWidgetOptions(id);
             int h = o.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 40), w = o.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, 110);
-            views = forWidget(c, store, store.timerOptions(id), h >= 160 ? 3 : h >= 100 ? 2 : 1, w < WIDE);
+            views = content.views(c, h >= 160 ? 3 : h >= 100 ? 2 : 1, w < WIDE);
         }
         m.updateAppWidget(id, views);
     }
@@ -59,6 +57,15 @@ public class CycleWidget extends AppWidgetProvider {
     static RemoteViews forWidget(Context c, Store store, Store.TimerOptions o, int rows) { return forWidget(c, store, o, rows, false); }
     /** Applies one widget's options: which programs, how many, what to show when idle, and colors. */
     static RemoteViews forWidget(Context c, Store store, Store.TimerOptions o, int rows, boolean narrow) {
+        return content(store, o).views(c, rows, narrow);
+    }
+    /** What one widget shows, read from the stored statuses once and then laid out for each size. */
+    record Content(List<Item> items, List<String[]> alerts, Climate.Device pinned, Home.Status pinnedStatus, Store.TimerOptions options) {
+        RemoteViews views(Context c, int rows, boolean narrow) {
+            return CycleWidget.views(c, items, alerts, Math.min(rows, options.max()), pinned, pinnedStatus, options.style(), narrow);
+        }
+    }
+    static Content content(Store store, Store.TimerOptions o) {
         List<Item> items = new ArrayList<>(active(store));
         if (o.selectedOnly()) items.removeIf(i -> !o.devices().contains(i.device().id()));
         List<String[]> alerts = new ArrayList<>();
@@ -67,7 +74,7 @@ public class CycleWidget extends AppWidgetProvider {
             Home.Status s = store.status(d.id()); if (s != null) for (String a : s.alerts()) alerts.add(new String[]{d.type(), d.name(), a});
         }
         Climate.Device pinned = o.pinned().isEmpty() ? null : store.device(o.pinned());
-        return views(c, items, alerts, Math.min(rows, o.max()), pinned, pinned == null ? null : store.status(pinned.id()), o.style(), narrow);
+        return new Content(items, alerts, pinned, pinned == null ? null : store.status(pinned.id()), o);
     }
     static RemoteViews views(Context c, List<Item> items, List<String[]> alerts, int rows) {
         return views(c, items, alerts, rows, null, null, WidgetStyle.defaults());
@@ -131,12 +138,12 @@ public class CycleWidget extends AppWidgetProvider {
         return r;
     }
     /**
-     * What the time box says when there is no live countdown. Kept short: the box is narrow, and the line below
-     * already gives the label and the start time of a scheduled program, so nothing is said twice.
+     * What the time box says when there is no live countdown: "곧 끝나요" past the expected end, how long until
+     * a scheduled program starts (as on iOS), or the time left of a paused one.
      */
     static String staticTime(Home.Cycle cy, Long end) {
         if (end != null) return "곧 끝나요";
-        if (cy.phase() == Home.Phase.RESERVED) return "예약";
+        if (cy.phase() == Home.Phase.RESERVED) return cy.startsIn() == null ? "예약" : Home.duration(cy.startsIn()) + " 후";
         return cy.remaining() == null ? "—" : Home.duration(cy.remaining());
     }
     /** "세탁 중 · 오후 3:42 완료 예정", without repeating the label when there is nothing else to add. */

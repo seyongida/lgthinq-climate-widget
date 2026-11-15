@@ -14,7 +14,7 @@ import Foundation
         if enabled { for item in cycles where item.cycle.phase != .reserved { wanted[item.id] = item } }
         for activity in Activity<CycleActivityAttributes>.activities {
             if let item = wanted.removeValue(forKey: activity.attributes.key) {
-                await activity.update(content(item))
+                await activity.update(content(item, previous: activity.content.state.expectedEnd))
             } else if enabled && (finished.contains(activity.attributes.key) || quietlyFinished(activity, idle)) {
                 var final = activity.content.state
                 final.done = true; final.label = "끝났어요"; final.endsAt = nil; final.remaining = nil
@@ -30,11 +30,12 @@ import Foundation
     }
     private static func quietlyFinished(_ activity: Activity<CycleActivityAttributes>, _ idle: [String: (HomeStatus, CycleStatus)]) -> Bool {
         guard let seen = idle[activity.attributes.key] else { return false }
-        return seen.0.finishedQuietly(seen.1, expectedEnd: activity.content.state.endsAt)
+        return seen.0.finishedQuietly(seen.1, expectedEnd: activity.content.state.expectedEnd ?? activity.content.state.endsAt)
     }
-    private static func content(_ item: ActiveCycle) -> ActivityContent<CycleActivityAttributes.ContentState> {
+    private static func content(_ item: ActiveCycle, previous: Date? = nil) -> ActivityContent<CycleActivityAttributes.ContentState> {
         let state = CycleActivityAttributes.ContentState(label: item.cycle.label, endsAt: item.endsAt, startedAt: item.startedAt,
-                                                         remaining: item.cycle.remaining, done: false, progress: item.pausedProgress)
+                                                         remaining: item.cycle.remaining, done: false, progress: item.pausedProgress,
+                                                         expectedEnd: item.status.expectedEnd(item.cycle, previous: previous))
         // Past the expected finish the system greys the activity until the next refresh confirms it.
         return ActivityContent(state: state, staleDate: item.endsAt?.addingTimeInterval(5 * 60))
     }

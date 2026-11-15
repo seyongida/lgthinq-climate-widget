@@ -59,6 +59,13 @@ public final class CoreTest {
         check(off.finishedQuietly(off.primaryCycle(),1_050_000L),"switched off within a minute of the expected end counts as finished");
         check(!off.finishedQuietly(off.primaryCycle(),1_100_000L),"switched off well before the expected end does not");
         check(!off.finishedQuietly(off.primaryCycle(),null),"switched off without an expected end does not");
+        check(!off.finishedQuietly(off.primaryCycle(),1_000_000L-16*60_000L),"seen off long after the expected end could be an early stop");
+        check(off.finishedQuietly(off.primaryCycle(),1_000_000L-15*60_000L),"seen off within the window counts");
+        check(running.expectedEnd(wash,null)==2_000_000L+1_380_000L,"remember the countdown end");
+        Home.Status ending=Home.parse(Map.of("runState",Map.of("currentState","RUNNING"),"timer",Map.of("remainMinute",0,"totalMinute",40)),"DEVICE_DISH_WASHER",5_000L);
+        check(ending.expectedEnd(ending.primaryCycle(),1L)==5_000L,"no time left means it ends now");
+        check(paused.expectedEnd(paused.primaryCycle(),7L)==7L,"a pause keeps the earlier expected end");
+        check(off.expectedEnd(off.primaryCycle(),7L)==null,"an idle device has no expected end");
         Home.Status cancelled=Home.parse(Map.of("runState",Map.of("currentState","CANCEL"),"timer",Map.of("remainMinute",0)),"DEVICE_DISH_WASHER",9_000_000L);
         check(!cancelled.finishedQuietly(cancelled.primaryCycle(),1_000_000L),"a cancelled program never counts as finished");
         Home.Status reserved=Home.parse(fixture("reserved_dish_washer.json"),"DEVICE_DISH_WASHER",0L);

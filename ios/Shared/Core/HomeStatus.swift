@@ -58,12 +58,26 @@ struct HomeStatus: Codable, Equatable {
     }
     /// ThinQ reports remaining time in whole minutes, so a program can end up to a minute before its expected end.
     static let quietFinishGrace: TimeInterval = 60
+    /// Seen off much later than this after the expected end, the program may have been stopped early long before.
+    static let quietFinishWindow: TimeInterval = 15 * 60
     /// Whether a program expected to end at `expectedEnd` finished even though the device never reported it: many
     /// dishwashers and dryers switch themselves off right after the end, so the next refresh sees them off, not done.
-    /// Counts only when the device is seen off at or after the expected end (less a minute) and was not cancelled.
+    /// Counts only when the device is seen off close to the expected end (a minute before to `quietFinishWindow`
+    /// after) and was not cancelled.
     func finishedQuietly(_ cycle: CycleStatus, expectedEnd: Date?) -> Bool {
         guard let expectedEnd else { return false }
-        return cycle.phase == .idle && cycle.state != "CANCEL" && fetchedAt >= expectedEnd.addingTimeInterval(-Self.quietFinishGrace)
+        return cycle.phase == .idle && cycle.state != "CANCEL"
+            && fetchedAt >= expectedEnd.addingTimeInterval(-Self.quietFinishGrace)
+            && fetchedAt <= expectedEnd.addingTimeInterval(Self.quietFinishWindow)
+    }
+    /// The expected end to remember for a quiet finish: the countdown end, the fetch time when a running program
+    /// reports no time left (it is ending now), or `previous` while it is paused or the time is unknown.
+    func expectedEnd(_ cycle: CycleStatus, previous: Date?) -> Date? {
+        guard cycle.phase == .running || cycle.phase == .paused else { return nil }
+        if let end = endsAt(cycle) { return end }
+        // Parsing keeps only positive remaining times: a running program with a timer but none left is ending now.
+        if cycle.phase == .running, cycle.remaining == nil, cycle.total != nil { return fetchedAt }
+        return previous
     }
     var airText: String? { airLevel.flatMap { HomeCatalog.airLevels[$0] }.map { "공기 " + $0 } }
 
