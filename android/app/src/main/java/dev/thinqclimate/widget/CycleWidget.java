@@ -117,9 +117,9 @@ public class CycleWidget extends AppWidgetProvider {
             r.setTextViewText(R.id.cycle_static, text);
             r.setViewVisibility(R.id.cycle_timer, View.GONE); r.setViewVisibility(R.id.cycle_static, View.VISIBLE);
         }
-        Integer total = item.cycle().total(), remaining = item.cycle().remaining();
-        int progress = total == null || remaining == null || total <= 0 ? 0 : (int) Math.max(0, Math.min(1000, 1000L * (total - remaining) / total));
-        r.setProgressBar(R.id.cycle_progress, 1000, progress, false);
+        // A still picture of the progress at this moment; CycleTicker redraws it while the program runs.
+        Double progress = item.status().progress(item.cycle(), now);
+        r.setProgressBar(R.id.cycle_progress, 1000, progress == null ? 0 : (int) Math.round(progress * 1000), false);
         r.setContentDescription(R.id.cycle_name, item.title() + ", " + item.cycle().label() + ", " + Ui.cycleDetail(item.status(), item.cycle()));
         return r;
     }

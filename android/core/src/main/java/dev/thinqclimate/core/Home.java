@@ -28,6 +28,19 @@ public final class Home {
             if (c.phase() != Phase.RUNNING || c.remaining() == null || c.remaining() <= 0) return null;
             return fetchedAt + c.remaining() * 1000L;
         }
+        /**
+         * How much of the program is done at {@code now}, from 0 to 1, or null when it cannot be known.
+         * A running program keeps moving between refreshes, so the bar matches the countdown next to it;
+         * a paused one stays where it stopped. A device that reports more time left than the whole program
+         * (it added time after starting) has no known start, so it gets no bar rather than a wrong one.
+         */
+        public Double progress(Cycle c, long now) {
+            Integer total = c.total(), remaining = c.remaining();
+            if (total == null || remaining == null || total <= 0 || remaining > total) return null;
+            if (c.phase() != Phase.RUNNING && c.phase() != Phase.PAUSED) return null;
+            double left = c.phase() == Phase.RUNNING ? Math.max(0, fetchedAt + remaining * 1000L - now) / 1000.0 : remaining;
+            return Math.max(0, Math.min(1, (total - left) / total));
+        }
         public String airText() { String l = airLevel == null ? null : AIR_LEVELS.get(airLevel); return l == null ? null : "공기 " + l; }
         public String summary() {
             Cycle c = primaryCycle();

@@ -43,13 +43,19 @@ final class CycleNotifier {
                     .setContentTitle(title).setOngoing(true).setOnlyAlertOnce(true).setCategory(Notification.CATEGORY_PROGRESS)
                     .setVisibility(Notification.VISIBILITY_PUBLIC).setContentIntent(open);
                 Long end = s.endsAt(cycle);
-                if (end != null && end > System.currentTimeMillis()) {
+                long now = System.currentTimeMillis();
+                if (end != null && end > now) {
                     b.setContentText(cycle.label() + " · " + Ui.time(end) + " 완료 예정").setWhen(end).setShowWhen(true)
                         .setUsesChronometer(true).setChronometerCountDown(true);
+                } else if (end != null) {
+                    // The expected end has passed but the device has not said it finished yet.
+                    b.setContentText(cycle.label() + " · 곧 끝나요").setShowWhen(false);
                 } else {
                     b.setContentText(cycle.remaining() == null ? cycle.label() : cycle.label() + " · " + Home.duration(cycle.remaining()) + " 남음").setShowWhen(false);
                 }
-                if (cycle.total() != null && cycle.remaining() != null) b.setProgress(cycle.total(), cycle.total() - cycle.remaining(), false);
+                // Drawn from the same moment as the countdown; CycleTicker redraws it while the program runs.
+                Double progress = s.progress(cycle, now);
+                if (progress != null) b.setProgress(1000, (int) Math.round(progress * 1000), false);
                 nm.notify(key.hashCode(), b.build());
                 next.add(key);
             }

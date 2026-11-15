@@ -47,6 +47,15 @@ public final class CoreTest {
         check(running.endsAt(running.primaryCycle())==2_000_000L+1_380_000L,"countdown end time");
         Home.Status paused=Home.parse(fixture("paused_styler.json"),"DEVICE_STYLER",2_000_000L);
         check(paused.endsAt(paused.primaryCycle())==null,"paused cycles do not count down");
+        Home.Cycle wash=running.primaryCycle();
+        check(Math.abs(running.progress(wash,2_000_000L)-35/58.0)<1e-9,"progress at the last response");
+        check(Math.abs(running.progress(wash,2_000_000L+600_000L)-45/58.0)<1e-9,"progress keeps moving with the countdown");
+        check(running.progress(wash,2_000_000L+5_000_000L)==1.0,"progress is full once the expected end passes");
+        check(Math.abs(paused.progress(paused.primaryCycle(),9_000_000L)-29/48.0)<1e-9,"paused progress stays put");
+        Home.Status longer=Home.parse(Map.of("runState",Map.of("currentState","RUNNING"),"timer",Map.of("remainMinute",50,"totalMinute",40)),"DEVICE_DISH_WASHER",0L);
+        check(longer.progress(longer.primaryCycle(),0L)==null,"no bar when more time is left than the whole program");
+        Home.Status reserved=Home.parse(fixture("reserved_dish_washer.json"),"DEVICE_DISH_WASHER",0L);
+        check(reserved.progress(reserved.primaryCycle(),0L)==null,"reserved programs have not started");
         check(Home.duration(1).equals("1분")&&Home.duration(61).equals("2분")&&Home.duration(3600).equals("1시간")&&Home.duration(3900).equals("1시간 5분"),"durations");
         for(String st:List.of("RINSING","INITIAL","FIRMWARE","DETECTING","RUNNING","END","PAUSE","SOAKING","RESERVED","SPINNING","POWER_OFF","ERROR","STEAM_SOFTENING","FROZEN_PREVENT_INITIAL","FROZEN_PREVENT_RUNNING","FROZEN_PREVENT_PAUSE","DISPENSING","RINSE_HOLD","PREWASH","DETERGENT_AMOUNT","ADD_DRAIN","REFRESHING","DRYING","COOLING","WRINKLE_CARE","DONE","CLEANING","PREFERENCE","PREHEATING","PAUSED","COOKING_IN_PROGRESS","PREHEATING_IS_DONE","COMPLETE","STAY","STERILIZE","RUNNING_END","PRESTEAM","NIGHT_DRY","SLEEP","STEAM","POWER_FAIL","CANCEL"))
             check(Home.phase(st)!=null&&!Home.stateLabel("DEVICE_WASHER",st).equals("작동 중"),"known state "+st);

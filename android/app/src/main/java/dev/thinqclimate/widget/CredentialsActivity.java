@@ -53,10 +53,10 @@ public final class CredentialsActivity extends Activity {
         content.addView(Ui.button(this,"취소",false,v->finish()));
     }
     private void startDemo(){
-        if(busy)return;store.startDemo();ClimateWidget.renderAll(this);CycleWidget.renderAll(this);RefreshWorker.schedule(this);setResult(RESULT_OK);finish();
+        if(busy)return;store.startDemo();ClimateWidget.renderAll(this);CycleTicker.refresh(this);RefreshWorker.schedule(this);setResult(RESULT_OK);finish();
     }
     private void endDemo(){
-        store.clear();ClimateWidget.renderAll(this);CycleWidget.renderAll(this);CycleNotifier.sync(this);setResult(RESULT_FIRST_USER);finish();
+        store.clear();ClimateWidget.renderAll(this);CycleTicker.refresh(this);setResult(RESULT_FIRST_USER);finish();
     }
     private void field(LinearLayout parent,EditText field){field.setTextSize(14);field.setTextColor(Ui.INK);field.setBackground(Ui.touch(this,android.graphics.Color.WHITE,14,true));field.setPadding(Ui.dp(this,14),Ui.dp(this,14),Ui.dp(this,14),Ui.dp(this,14));parent.addView(field);}
     private void save() {
