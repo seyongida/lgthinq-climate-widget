@@ -7,7 +7,7 @@ settings:
   base:
     SWIFT_VERSION: "5.9"
     CURRENT_PROJECT_VERSION: "8"
-    MARKETING_VERSION: "1.5.0"
+    MARKETING_VERSION: "1.6.1"
     CLIMATE_BUNDLE_ID: dev.thinqclimate.widget
     CLIMATE_APP_GROUP: group.dev.thinqclimate.widget
     CLIMATE_KEYCHAIN_GROUP: $(AppIdentifierPrefix)dev.thinqclimate.shared
