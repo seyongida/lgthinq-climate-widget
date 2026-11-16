@@ -38,7 +38,7 @@ git push origin v1.5.0
 
 ## Google Play 배포
 
-패키지 이름은 GitHub APK와 같은 `dev.thinqclimate.widget.release`입니다. Play 앱 서명에 기존 배포 키를 올리면 GitHub에서 설치한 사람도 지우지 않고 Play 버전으로 업데이트할 수 있습니다.
+패키지 이름은 GitHub APK와 같은 `dev.thinqclimate.widget.release`입니다. 앱 서명 키는 Google이 만들고 보관합니다(인증서 SHA-256 `CE:25:90:40:…:64:BB`). 우리 키(`BB:37:86:22:…:85:CD`)는 업로드 키로만 씁니다. Google 키는 내려받을 수 없으므로, 릴리즈는 Play에 올린 번들로 Google이 서명한 유니버설 APK를 받아 GitHub 다운로드로 씁니다. 그래서 GitHub과 Play 설치본이 서로 업데이트됩니다. `PLAY_ENABLED`를 끄면 GitHub APK는 다시 우리 키로 서명되어 Play 설치본과 충돌합니다.
 
 - 스토어 문구는 `play/metadata/ko-KR/`, 이미지는 `play/images/ko-KR/`(아이콘 512, 그래픽 이미지 1024×500, 휴대폰 스크린샷)에 있습니다. 그래픽은 `swift scripts/generate-play-graphics.swift ios/App/Assets.xcassets/AppIcon.appiconset/AppIcon.png play/images/ko-KR`로 다시 만듭니다.
 - 릴리즈 태그는 APK와 함께 `.aab`을 만들고, `PLAY_ENABLED=true`이면 `PLAY_TRACK`(기본 비공개 테스트)에 올리며 스토어 문구와 이미지를 맞춥니다. 문구만 바꿀 때는 `Update Google Play listing` 워크플로를 실행합니다.

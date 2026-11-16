@@ -65,7 +65,10 @@ jobs:
         if: always()
         run: rm -f "$RUNNER_TEMP/thinq-release.jks"
   publish:
-    needs: android
+    # With Google Play on, the GitHub download is the APK Google signs with the Play app signing key, so an
+    # app installed from GitHub and one installed from Play are the same app and update each other.
+    needs: [android, play]
+    if: always() && needs.android.result == 'success' && (needs.play.result == 'success' || needs.play.result == 'skipped')
     runs-on: ubuntu-24.04
     permissions:
       contents: write
@@ -79,6 +82,17 @@ jobs:
         with:
           name: public-android-release
           path: release-assets
+      - uses: actions/download-artifact@v4
+        if: needs.play.result == 'success'
+        with:
+          name: play-signed-apk
+          path: play-signed
+      - name: Use the Google-signed APK
+        if: needs.play.result == 'success'
+        run: |
+          cp play-signed/ThinQ-Climate.apk release-assets/ThinQ-Climate.apk
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs release-assets/ThinQ-Climate.apk > release-assets/SIGNING_CERTIFICATE.txt
+          (cd release-assets && sha256sum ThinQ-Climate.apk > SHA256SUMS)
       - name: Prepare download instructions
         run: python3 scripts/release-notes.py "$GITHUB_REF_NAME" > release-assets/INSTALL.md
       - name: Publish downloads
@@ -122,3 +136,17 @@ jobs:
           path: play-bundle
       - name: Upload to Google Play
         run: python3 scripts/play.py upload play-bundle/app-release.aab --notes "Climate Widget $GITHUB_REF_NAME"
+      - name: Download the APK Google signed
+        run: |
+          code=$(sed -n 's/.*versionCode = \([0-9]*\).*/\1/p' android/app/build.gradle.kts)
+          mkdir -p play-signed
+          python3 scripts/play.py universal-apk "$code" play-signed/ThinQ-Climate.apk
+          # Built by Google from the bundle the android job verified; check it is that version of this app.
+          badging=$("$ANDROID_HOME/build-tools/35.0.0/aapt2" dump badging play-signed/ThinQ-Climate.apk | head -1)
+          echo "$badging"
+          grep -q "name='dev.thinqclimate.widget.release' versionCode='$code' versionName='${GITHUB_REF_NAME#v}'" <<<"$badging"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: play-signed-apk
+          path: play-signed/ThinQ-Climate.apk
+          retention-days: 14

@@ -16,6 +16,9 @@ On first launch, enter your own LG ThinQ Personal Access Token. You can replace 
 The public app contains no developer PAT. Public and personal Dev apps can be installed separately.
 SHA256SUMS and SIGNING_CERTIFICATE.txt are provided with the APK.
 
+From 1.6.1 the APK is signed by Google Play, the same as the Play Store version. If you installed 1.6.0 or
+earlier from GitHub, uninstall it once before installing this one, then enter your token again.
+
 ## iPhone / iPad
 ''')
 link = os.environ.get('IOS_TESTFLIGHT_URL', '').strip()
