@@ -94,22 +94,32 @@ def sync_listing(play, edit, root=None):
     return languages, counts
 
 
-def upload_bundle(play, edit, bundle, track, notes):
+def upload_bundle(play, edit, bundle, track, notes, status='completed'):
     uploaded = play.call('POST', f'{play.upload_base}/edits/{edit}/bundles?uploadType=media',
                          data=Path(bundle).read_bytes(), content_type='application/octet-stream')
     code = uploaded['versionCode']
-    release = {'versionCodes': [str(code)], 'status': 'completed'}
+    release = {'versionCodes': [str(code)], 'status': status}
     if notes:
         release['releaseNotes'] = [{'language': 'ko-KR', 'text': notes[:500]}]
-    try:
-        play.call('PUT', f'{play.base}/edits/{edit}/tracks/{track}', {'track': track, 'releases': [release]})
-    except SystemExit as error:
-        # An app that has never been published only accepts draft releases; they go live from Play Console.
-        if 'draft' not in str(error).lower():
-            raise
-        release['status'] = 'draft'
-        play.call('PUT', f'{play.base}/edits/{edit}/tracks/{track}', {'track': track, 'releases': [release]})
-    return code, release['status']
+    play.call('PUT', f'{play.base}/edits/{edit}/tracks/{track}', {'track': track, 'releases': [release]})
+    return code
+
+
+def publish(play, bundle, track, notes, listing=True):
+    """Uploads and commits in one edit. An app that has never been published only accepts draft releases
+    (Play may say so when the track is set or only at commit), so that case is retried as a draft, which
+    goes live from Play Console."""
+    for status in ('completed', 'draft'):
+        edit = play.edit()
+        try:
+            code = upload_bundle(play, edit, bundle, track, notes, status)
+            counts = sync_listing(play, edit) if listing else None
+            play.commit(edit)
+            return code, status, counts
+        except SystemExit as error:
+            if status == 'draft' or 'draft' not in str(error).lower():
+                raise
+            print('Play accepts only draft releases until the app is published; uploading as a draft')
 
 
 def universal_apk(play, version_code, out, wait_seconds=1200, poll=30):
@@ -207,16 +217,18 @@ def main():
     if args.command == 'universal-apk':
         print('Google-signed universal APK, app signing certificate SHA-256:', universal_apk(play, args.version_code, args.out))
         return
-    edit = play.edit()
     if args.command == 'upload':
-        code, status = upload_bundle(play, edit, args.bundle, args.track, args.notes)
+        code, status, counts = publish(play, args.bundle, args.track, args.notes, not args.no_listing)
         print(f'Uploaded version code {code} to the {args.track} track ({status})')
-    if args.command == 'listing' or not getattr(args, 'no_listing', False):
-        languages, counts = sync_listing(play, edit)
-        print('Listing:', ', '.join(languages), ' '.join(f'{k}={v}' for k, v in counts.items()))
+        if counts:
+            print('Listing:', ', '.join(counts[0]), ' '.join(f'{k}={v}' for k, v in counts[1].items()))
+        print('Committed')
+        return
+    edit = play.edit()
+    languages, counts = sync_listing(play, edit)
+    print('Listing:', ', '.join(languages), ' '.join(f'{k}={v}' for k, v in counts.items()))
     play.commit(edit)
     print('Committed')
-
 
 if __name__ == '__main__':
     main()
