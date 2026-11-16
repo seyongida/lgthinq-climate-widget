@@ -28,6 +28,42 @@ public final class Home {
             if (c.phase() != Phase.RUNNING || c.remaining() == null || c.remaining() <= 0) return null;
             return fetchedAt + c.remaining() * 1000L;
         }
+        /**
+         * How much of the program is done at {@code now}, from 0 to 1, or null when it cannot be known.
+         * A running program keeps moving between refreshes, so the bar matches the countdown next to it;
+         * a paused one stays where it stopped. A device that reports more time left than the whole program
+         * (it added time after starting) has no known start, so it gets no bar rather than a wrong one.
+         */
+        public Double progress(Cycle c, long now) {
+            Integer total = c.total(), remaining = c.remaining();
+            if (total == null || remaining == null || total <= 0 || remaining > total) return null;
+            if (c.phase() != Phase.RUNNING && c.phase() != Phase.PAUSED) return null;
+            double left = c.phase() == Phase.RUNNING ? Math.max(0, fetchedAt + remaining * 1000L - now) / 1000.0 : remaining;
+            return Math.max(0, Math.min(1, (total - left) / total));
+        }
+        /**
+         * Whether a program that was expected to end at {@code expectedEnd} finished even though the device never
+         * reported it: many dishwashers and dryers switch themselves off right after the end, so the next refresh
+         * sees them off rather than done. Counts only when the device is seen off close to the expected end: from a
+         * minute before (ThinQ reports whole minutes) to {@link #QUIET_FINISH_WINDOW_MS} after. Seen off much later,
+         * it may have been stopped early and switched off long ago, so nothing is claimed. A cancelled program never counts.
+         */
+        public boolean finishedQuietly(Cycle c, Long expectedEnd) {
+            return expectedEnd != null && c.phase() == Phase.IDLE && !"CANCEL".equals(c.state())
+                && fetchedAt >= expectedEnd - QUIET_FINISH_GRACE_MS && fetchedAt <= expectedEnd + QUIET_FINISH_WINDOW_MS;
+        }
+        /**
+         * The expected end to remember for a quiet finish: the countdown end, the fetch time when a running program
+         * reports no time left (it is ending now), or {@code previous} while the program is paused or unknown.
+         */
+        public Long expectedEnd(Cycle c, Long previous) {
+            if (c.phase() != Phase.RUNNING && c.phase() != Phase.PAUSED) return null;
+            Long end = endsAt(c);
+            if (end != null) return end;
+            // Parsing keeps only positive remaining times: a running program with a timer but none left is ending now.
+            if (c.phase() == Phase.RUNNING && c.remaining() == null && c.total() != null) return fetchedAt;
+            return previous;
+        }
         public String airText() { String l = airLevel == null ? null : AIR_LEVELS.get(airLevel); return l == null ? null : "공기 " + l; }
         public String summary() {
             Cycle c = primaryCycle();
@@ -63,6 +99,11 @@ public final class Home {
             return result;
         }
     }
+
+    /** ThinQ reports remaining time in whole minutes, so a program can end up to a minute before its expected end. */
+    public static final long QUIET_FINISH_GRACE_MS = 60_000L;
+    /** A refresh is planned two minutes after each expected end, so a quiet finish is normally seen well within this. */
+    public static final long QUIET_FINISH_WINDOW_MS = 15 * 60_000L;
 
     public static Status parse(Object state, String type, long now) {
         List<Map<?,?>> parts = new ArrayList<>();

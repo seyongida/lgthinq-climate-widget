@@ -1,3 +1,5 @@
+<!-- The time box has a fixed width and tabular digits, so the name and the progress bar do not shift
+ as the countdown ticks or passes an hour; long texts shrink to fit instead of squeezing the name. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:layout_width="match_parent" android:layout_height="0dp"
  android:layout_weight="1" android:orientation="horizontal" android:gravity="center_vertical">
  <ImageView android:id="@+id/cycle_icon" android:layout_width="30dp" android:layout_height="30dp" android:padding="6dp"
@@ -10,8 +12,12 @@
   <TextView android:id="@+id/cycle_detail" android:layout_width="match_parent" android:layout_height="wrap_content" android:maxLines="1" android:ellipsize="end"
    android:textColor="#62716B" android:textSize="11sp"/>
  </LinearLayout>
- <Chronometer android:id="@+id/cycle_timer" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginStart="8dp"
+ <Chronometer android:id="@+id/cycle_timer" android:layout_width="76dp" android:layout_height="28dp" android:layout_marginStart="6dp"
+  android:gravity="end|center_vertical" android:maxLines="1" android:ellipsize="end" android:fontFeatureSettings="tnum"
+  android:autoSizeTextType="uniform" android:autoSizeMinTextSize="10sp" android:autoSizeMaxTextSize="20sp" android:autoSizeStepGranularity="1sp"
   android:textColor="#12211E" android:textSize="20sp" android:textStyle="bold" android:fontFamily="sans-serif-medium"/>
- <TextView android:id="@+id/cycle_static" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginStart="8dp"
-  android:textColor="#12211E" android:textSize="15sp" android:textStyle="bold" android:visibility="gone"/>
+ <TextView android:id="@+id/cycle_static" android:layout_width="76dp" android:layout_height="28dp" android:layout_marginStart="6dp"
+  android:gravity="end|center_vertical" android:maxLines="1" android:ellipsize="end" android:fontFeatureSettings="tnum"
+  android:autoSizeTextType="uniform" android:autoSizeMinTextSize="10sp" android:autoSizeMaxTextSize="20sp" android:autoSizeStepGranularity="1sp"
+  android:textColor="#12211E" android:textSize="20sp" android:textStyle="bold" android:fontFamily="sans-serif-medium" android:visibility="gone"/>
 </LinearLayout>

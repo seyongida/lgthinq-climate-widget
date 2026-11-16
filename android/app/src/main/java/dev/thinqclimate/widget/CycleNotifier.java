@@ -28,6 +28,7 @@ final class CycleNotifier {
         Store store = new Store(c);
         boolean enabled = store.liveUpdates() && permitted(c);
         Set<String> shown = store.shownCycles(), next = new HashSet<>(), finished = new HashSet<>();
+        Map<String, Long> ends = store.cycleEnds(), nextEnds = new HashMap<>();
         PendingIntent open = PendingIntent.getActivity(c, 8, new Intent(c, MainActivity.class).setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP),
             PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
         Map<String, String> titles = new HashMap<>();
@@ -37,19 +38,29 @@ final class CycleNotifier {
                 String key = d.id() + "|" + (cycle.location() == null ? "" : cycle.location());
                 String title = d.name() + (cycle.location() == null ? "" : " " + cycle.location());
                 titles.put(key, title);
-                if (cycle.phase() == Home.Phase.DONE) finished.add(key);
+                // Done, or switched off once the expected end had come (many dishwashers turn off by themselves).
+                if (cycle.phase() == Home.Phase.DONE || s.finishedQuietly(cycle, ends.get(key))) finished.add(key);
+                // Kept through pauses and "0 minutes left", so a power-off right after the end is recognised.
+                Long expected = s.expectedEnd(cycle, ends.get(key));
+                if (expected != null) nextEnds.put(key, expected);
                 if (!enabled || (cycle.phase() != Home.Phase.RUNNING && cycle.phase() != Home.Phase.PAUSED)) continue;
                 Notification.Builder b = new Notification.Builder(c, CHANNEL).setSmallIcon(Ui.typeIcon(d.type())).setColor(Ui.GREEN)
                     .setContentTitle(title).setOngoing(true).setOnlyAlertOnce(true).setCategory(Notification.CATEGORY_PROGRESS)
                     .setVisibility(Notification.VISIBILITY_PUBLIC).setContentIntent(open);
                 Long end = s.endsAt(cycle);
-                if (end != null && end > System.currentTimeMillis()) {
+                long now = System.currentTimeMillis();
+                if (end != null && end > now) {
                     b.setContentText(cycle.label() + " · " + Ui.time(end) + " 완료 예정").setWhen(end).setShowWhen(true)
                         .setUsesChronometer(true).setChronometerCountDown(true);
+                } else if (end != null) {
+                    // The expected end has passed but the device has not said it finished yet.
+                    b.setContentText(cycle.label() + " · 곧 끝나요").setShowWhen(false);
                 } else {
                     b.setContentText(cycle.remaining() == null ? cycle.label() : cycle.label() + " · " + Home.duration(cycle.remaining()) + " 남음").setShowWhen(false);
                 }
-                if (cycle.total() != null && cycle.remaining() != null) b.setProgress(cycle.total(), cycle.total() - cycle.remaining(), false);
+                // Drawn from the same moment as the countdown; CycleTicker redraws it while the program runs.
+                Double progress = s.progress(cycle, now);
+                if (progress != null) b.setProgress(1000, (int) Math.round(progress * 1000), false);
                 nm.notify(key.hashCode(), b.build());
                 next.add(key);
             }
@@ -63,5 +74,6 @@ final class CycleNotifier {
             } else nm.cancel(key.hashCode());
         }
         store.shownCycles(next);
+        store.cycleEnds(nextEnds);
     }
 }

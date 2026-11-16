@@ -18,7 +18,7 @@ public final class RefreshWorker extends Worker {
         final List<Climate.Device> devices;
         if (store.demo()) {
             store.fillDemo(System.currentTimeMillis());
-            ClimateWidget.renderAll(context); CycleWidget.renderAll(context); CycleNotifier.sync(context);
+            ClimateWidget.renderAll(context); CycleTicker.refresh(context);
             checkAfterNextFinish(context, store);
             return Result.success();
         }
@@ -64,8 +64,7 @@ public final class RefreshWorker extends Worker {
         }
         if (!isStopped()) refreshEnergy(store, api, current);
         ClimateWidget.renderAll(context);
-        CycleWidget.renderAll(context);
-        CycleNotifier.sync(context);
+        CycleTicker.refresh(context);
         checkAfterNextFinish(context, store);
         return Result.success();
     }

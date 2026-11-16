@@ -29,6 +29,8 @@ struct ActiveCycle: Identifiable, Equatable {
     var title: String { device.name + (cycle.location.map { " " + $0 } ?? "") }
     var endsAt: Date? { status.endsAt(cycle) }
     var startedAt: Date? { status.startedAt(cycle) }
+    /// Where a paused program stopped; a running one is drawn live from `startedAt`...`endsAt`.
+    var pausedProgress: Double? { cycle.phase == .paused ? status.progress(cycle, at: Date()) : nil }
 }
 struct HomeAlert: Identifiable, Equatable {
     let device: ThinQDevice
@@ -67,7 +69,8 @@ struct Countdown: View {
         } else if cycle.phase == .reserved {
             Text(cycle.startsIn.map { HomeFormat.duration($0) + " 후" } ?? "예약")
         } else {
-            Text(cycle.remaining.map { HomeFormat.duration($0) } ?? cycle.label)
+            // The label is already shown next to the time, so an unknown time is a dash rather than the label again.
+            Text(cycle.remaining.map { HomeFormat.duration($0) } ?? "—")
         }
     }
 }
@@ -76,10 +79,14 @@ struct CycleProgress: View {
     let endsAt: Date?
     let tint: Color
     var track: Color = Color.black.opacity(0.08)
+    /// A paused program's progress, which stays where it stopped instead of falling back to an empty bar.
+    var paused: Double? = nil
     var body: some View {
         if let startedAt, let endsAt, startedAt < endsAt {
             ProgressView(timerInterval: startedAt...endsAt, countsDown: false) { EmptyView() } currentValueLabel: { EmptyView() }
                 .progressViewStyle(.linear).tint(tint)
+        } else if let paused {
+            ProgressView(value: paused).progressViewStyle(.linear).tint(tint)
         } else {
             Capsule().fill(track).frame(height: 4)
         }
@@ -94,6 +101,11 @@ enum CycleText {
         }
         return item.cycle.label
     }
+    /// "세탁 중 · 오후 3:42 완료 예정", without repeating the label when there is nothing else to add.
+    static func line(_ item: ActiveCycle) -> String {
+        let more = detail(item)
+        return more == item.cycle.label ? more : "\(item.cycle.label) · \(more)"
+    }
 }
 
 struct CycleActivityAttributes: ActivityAttributes {
@@ -103,6 +115,11 @@ struct CycleActivityAttributes: ActivityAttributes {
         var startedAt: Date?
         var remaining: Int?
         var done: Bool
+        /// Progress of a paused program; a running one is drawn live from `startedAt`...`endsAt`.
+        var progress: Double? = nil
+        /// When the program should finish, kept through pauses and "no time left" reports so a later
+        /// power-off near this time can be recognised as a finish. Not shown.
+        var expectedEnd: Date? = nil
     }
     var key: String
     var title: String

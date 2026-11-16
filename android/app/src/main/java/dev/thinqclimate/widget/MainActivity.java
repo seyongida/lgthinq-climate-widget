@@ -25,7 +25,13 @@ public final class MainActivity extends Activity {
     private Store store;
     private boolean busy;
     private String snapshot="";
-    private final Runnable poll=new Runnable() { @Override public void run() { if(!isDestroyed()) { updateCards();handler.postDelayed(this,1500); } } };
+    /** Running cycle cards redraw their progress bars here, and the next expected end that needs a rebuild. */
+    private final List<Runnable> cycleTicks=new ArrayList<>();
+    private long nextCycleEnd=Long.MAX_VALUE;
+    private final Runnable poll=new Runnable() { @Override public void run() { if(!isDestroyed()) {
+        // Past an expected end, the countdown gives way to "곧 끝나요".
+        if(System.currentTimeMillis()>=nextCycleEnd)snapshot="";
+        updateCards();for(Runnable r:cycleTicks)r.run();handler.postDelayed(this,1500); } } };
     @Override public void onCreate(Bundle saved) {
         super.onCreate(saved); store=new Store(this);
         boolean newBuild=false;
@@ -102,7 +108,7 @@ public final class MainActivity extends Activity {
         List<Climate.Device> devices=store.devices(),climate=store.climateDevices();
         updateHero(climate,devices);
         List<CycleWidget.Item> cycles=CycleWidget.active(store);
-        cyclesList.removeAllViews();cyclesSection.setVisibility(cycles.isEmpty()?View.GONE:View.VISIBLE);
+        cyclesList.removeAllViews();cycleTicks.clear();nextCycleEnd=Long.MAX_VALUE;cyclesSection.setVisibility(cycles.isEmpty()?View.GONE:View.VISIBLE);
         for(CycleWidget.Item item:cycles){cyclesList.addView(cycleCard(item));Ui.gap(cyclesList,12);}
         alertsList.removeAllViews();int alerts=0;
         for(Climate.Device d:devices){Home.Status s=store.status(d.id());if(s==null)continue;
@@ -128,7 +134,7 @@ public final class MainActivity extends Activity {
             store.notificationAsked(true);requestPermissions(new String[]{android.Manifest.permission.POST_NOTIFICATIONS},42);
         }
     }
-    @Override public void onRequestPermissionsResult(int code,String[] permissions,int[] results){super.onRequestPermissionsResult(code,permissions,results);if(code==42)CycleNotifier.sync(this);}
+    @Override public void onRequestPermissionsResult(int code,String[] permissions,int[] results){super.onRequestPermissionsResult(code,permissions,results);if(code==42)CycleTicker.refreshAsync(this);}
     private void updateEnergy(List<Climate.Device> devices) {
         List<Climate.Device> rows=new ArrayList<>();for(Climate.Device d:devices){dev.thinqclimate.core.Energy.Usage u=store.energy(d.id());if(u!=null&&u.current()>0)rows.add(d);}
         rows.sort((a,b)->Integer.compare(store.energy(b.id()).current(),store.energy(a.id()).current()));
@@ -156,6 +162,7 @@ public final class MainActivity extends Activity {
         names.addView(Ui.text(this,item.cycle().label(),13,item.cycle().phase()==Home.Phase.RUNNING?Ui.GREEN:Ui.MUTED,true));Ui.weighted(top,names);
         Long end=item.endsAt();long now=System.currentTimeMillis();
         if(end!=null&&end>now){
+            nextCycleEnd=Math.min(nextCycleEnd,end);
             Chronometer timer=new Chronometer(this);timer.setTextSize(28);timer.setTextColor(Ui.INK);timer.setTypeface(android.graphics.Typeface.DEFAULT_BOLD);
             timer.setBase(android.os.SystemClock.elapsedRealtime()+(end-now));timer.setCountDown(true);timer.start();top.addView(timer);
         } else {
@@ -164,8 +171,8 @@ public final class MainActivity extends Activity {
         }
         card.addView(top);Ui.gap(card,14);
         ProgressBar bar=new ProgressBar(this,null,android.R.attr.progressBarStyleHorizontal);bar.setMax(1000);
-        Integer total=item.cycle().total(),remaining=item.cycle().remaining();
-        bar.setProgress(total==null||remaining==null||total<=0?0:(int)Math.max(0,Math.min(1000,1000L*(total-remaining)/total)));
+        Runnable tick=()->{Double p=item.status().progress(item.cycle(),System.currentTimeMillis());bar.setProgress(p==null?0:(int)Math.round(p*1000));};
+        tick.run();if(item.cycle().phase()==Home.Phase.RUNNING)cycleTicks.add(tick);
         bar.setProgressTintList(android.content.res.ColorStateList.valueOf(Ui.GREEN));bar.setProgressBackgroundTintList(android.content.res.ColorStateList.valueOf(Ui.LINE));
         card.addView(bar,new LinearLayout.LayoutParams(-1,Ui.dp(this,6)));Ui.gap(card,10);
         card.addView(Ui.text(this,Ui.cycleDetail(item.status(),item.cycle())+(end==null?"":" · 남은 시간은 예상이에요"),12,Ui.MUTED,false));
@@ -277,7 +284,7 @@ public final class MainActivity extends Activity {
             .setPositiveButton("선택 완료",(dialog,which)->{List<Climate.Device> next=new ArrayList<>();for(int i=0;i<checked.length;i++)if(checked[i])next.add(devices.get(i));store.selectDevices(next);selected();})
             .setNegativeButton("취소",(d,w)->{snapshot="";updateCards();}).setOnCancelListener(d->{snapshot="";updateCards();}).show();
     }
-    private void selected(){snapshot="";updateCards();ClimateWidget.renderAll(this);CycleWidget.renderAll(this);RefreshWorker.schedule(this);RefreshWorker.refresh(this);}
+    private void selected(){snapshot="";updateCards();ClimateWidget.renderAll(this);CycleTicker.refreshAsync(this);RefreshWorker.schedule(this);RefreshWorker.refresh(this);}
     private void pin(Class<? extends android.appwidget.AppWidgetProvider> provider) {
         if(provider!=CycleWidget.class&&store.climateDevices().isEmpty()){Toast.makeText(this,"온도·습도를 보여 주는 기기가 없어요",Toast.LENGTH_SHORT).show();return;}
         AppWidgetManager manager=AppWidgetManager.getInstance(this);

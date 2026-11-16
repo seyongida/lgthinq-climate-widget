@@ -22,7 +22,7 @@ enum ClimateFormat {
     static func time(_ date: Date) -> String {
         let formatter = DateFormatter()
         formatter.locale = Locale(identifier: "ko_KR")
-        formatter.dateFormat = "HH:mm"
+        formatter.dateFormat = "a h:mm"
         return formatter.string(from: date)
     }
     // Same wording as the Android widget. Sample data is always labelled.
