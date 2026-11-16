@@ -25,8 +25,11 @@ class FakePlay(play.Play):
             return {'generatedApks': [{'certificateSha256Hash': 'abc', 'generatedUniversalApk': {'downloadId': 'd1'}}]}
         if url.endswith('/bundles?uploadType=media'):
             return {'versionCode': 8}
-        if '/tracks/' in url and self.draft_only and body['releases'][0]['status'] != 'draft':
-            raise SystemExit('Google Play PUT failed: HTTP 400 Only releases with status draft may be created on draft app.')
+        if '/tracks/' in url:
+            self.status = body['releases'][0]['status']
+        # Play reports the draft-only rule when the edit is committed.
+        if url.endswith(':commit') and self.draft_only and getattr(self, 'status', '') != 'draft':
+            raise SystemExit('Google Play POST commit failed: HTTP 400 Only releases with status draft may be created on draft app.')
         return {'id': 'e1'}
 
 
@@ -65,14 +68,16 @@ class PlayTests(unittest.TestCase):
 
     def test_bundle_goes_to_track_with_notes(self):
         fake = FakePlay()
-        self.assertEqual(play.upload_bundle(fake, 'e1', self.bundle, 'alpha', '새 버전'), (8, 'completed'))
+        self.assertEqual(play.publish(fake, self.bundle, 'alpha', '새 버전', listing=False), (8, 'completed', None))
         track = [c for c in fake.calls if '/tracks/alpha' in c[1]][0][2]
         self.assertEqual(track['releases'][0]['versionCodes'], ['8'])
         self.assertEqual(track['releases'][0]['releaseNotes'][0]['language'], 'ko-KR')
 
-    def test_unpublished_app_gets_a_draft_release(self):
+    def test_unpublished_app_gets_a_draft_release_even_when_commit_refuses(self):
         fake = FakePlay(draft_only=True)
-        self.assertEqual(play.upload_bundle(fake, 'e1', self.bundle, 'alpha', ''), (8, 'draft'))
+        self.assertEqual(play.publish(fake, self.bundle, 'alpha', '', listing=False)[:2], (8, 'draft'))
+        commits = [c for c in fake.calls if c[1].endswith(':commit')]
+        self.assertEqual(len(commits), 2, 'The refused edit is replaced by a new draft edit')
 
 
 class SignedApkTests(unittest.TestCase):
