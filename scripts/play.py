@@ -195,6 +195,7 @@ def main():
     up.add_argument('--no-listing', action='store_true')
     commands.add_parser('listing', help='Only sync the store listing')
     commands.add_parser('prepare', help='Enable the API and check Play Console access for the saved key')
+    commands.add_parser('tracks', help='List tracks, their releases and the countries each one targets')
     apk = commands.add_parser('universal-apk', help='Download the Google-signed universal APK of a version code')
     apk.add_argument('version_code')
     apk.add_argument('out')
@@ -214,6 +215,19 @@ def main():
     if args.command == 'prepare':
         sys.exit(0 if prepare(load_key(args.key), args.package) else 1)
     play = Play(asc.google_token(load_key(args.key), SCOPE), args.package)
+    if args.command == 'tracks':
+        edit = play.edit()
+        for track in play.call('GET', f'{play.base}/edits/{edit}/tracks').get('tracks', []):
+            name = track['track']
+            try:
+                countries = play.call('GET', f'{play.base}/edits/{edit}/countryAvailability/{name}')
+                where = 'all countries' if countries.get('restOfWorld') else ', '.join(c['countryCode'] for c in countries.get('countries', [])) or 'none'
+            except SystemExit as error:
+                where = 'unknown (' + str(error)[-80:] + ')'
+            releases = '; '.join(f"{r.get('name', '')} {r.get('versionCodes', [])} {r.get('status')}" for r in track.get('releases', [])) or 'no releases'
+            print(f'{name}: countries={where} | {releases}')
+        play.call('DELETE', f'{play.base}/edits/{edit}')
+        return
     if args.command == 'universal-apk':
         print('Google-signed universal APK, app signing certificate SHA-256:', universal_apk(play, args.version_code, args.out))
         return

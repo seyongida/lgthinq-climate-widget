@@ -6,7 +6,7 @@ on:
     inputs:
       mode:
         type: choice
-        options: [listing, prepare, signed-apk]
+        options: [listing, prepare, signed-apk, tracks]
         default: listing
       version_code:
         description: 'For signed-apk: the version code to download'
