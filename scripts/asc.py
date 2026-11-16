@@ -61,10 +61,14 @@ class Client:
                 data = response.read()
         except urllib.error.HTTPError as error:
             try:
-                titles = [' '.join(filter(None, [e.get('title', ''), e.get('detail', '')]))[:300]
-                          for e in json.loads(error.read()).get('errors', [])]
+                errors = json.loads(error.read()).get('errors', [])
             except ValueError:
-                titles = []
+                errors = []
+            titles = [' '.join(filter(None, [e.get('title', ''), e.get('detail', '')]))[:300] for e in errors]
+            # Apple puts the actual reasons (missing fields, unprocessed assets) under meta.associatedErrors.
+            for e in errors:
+                for found in (e.get('meta') or {}).get('associatedErrors', {}).values():
+                    titles += [' '.join(filter(None, [a.get('code', ''), a.get('detail', '')]))[:300] for a in found]
             raise SystemExit(f'App Store Connect {method} {path} failed: HTTP {error.code} {"; ".join(titles)}')
         return json.loads(data) if data else {}
 
