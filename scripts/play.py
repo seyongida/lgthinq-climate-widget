@@ -31,7 +31,8 @@ class Play:
         self.base = f'{API}/androidpublisher/v3/applications/{package}'
         self.upload_base = f'{API}/upload/androidpublisher/v3/applications/{package}'
 
-    def call(self, method, url, body=None, data=None, content_type='application/json'):
+    def call(self, method, url, body=None, data=None, content_type='application/json', raw=False):
+        want_raw = raw
         payload = data if data is not None else (json.dumps(body).encode() if body is not None else None)
         request = urllib.request.Request(url, method=method, data=payload)
         request.add_header('Authorization', 'Bearer ' + self.token)
@@ -39,14 +40,16 @@ class Play:
             request.add_header('Content-Type', content_type)
         try:
             with urllib.request.urlopen(request, timeout=300) as response:
-                raw = response.read()
+                body_bytes = response.read()
         except urllib.error.HTTPError as error:
             try:
                 message = json.loads(error.read()).get('error', {}).get('message', '')
             except ValueError:
                 message = ''
             raise SystemExit(f'Google Play {method} {url.split(self.package)[-1] or "/"} failed: HTTP {error.code} {message[:300]}')
-        return json.loads(raw) if raw else {}
+        if want_raw:
+            return body_bytes
+        return json.loads(body_bytes) if body_bytes else {}
 
     def edit(self):
         return self.call('POST', f'{self.base}/edits', {})['id']
@@ -109,6 +112,33 @@ def upload_bundle(play, edit, bundle, track, notes):
     return code, release['status']
 
 
+def universal_apk(play, version_code, out, wait_seconds=1200, poll=30):
+    """Downloads the universal APK that Google Play builds from the bundle and signs with the app signing key.
+
+    The app signing key never leaves Google, so this is how the GitHub download gets the same signature as
+    the Play install. Returns the signing certificate's SHA-256.
+    """
+    import time
+    deadline = time.time() + wait_seconds
+    while True:
+        try:
+            found = play.call('GET', f'{play.base}/generatedApks/{version_code}').get('generatedApks', [])
+        except SystemExit as error:
+            if 'HTTP 404' not in str(error):
+                raise
+            found = []
+        ready = [g for g in found if g.get('generatedUniversalApk', {}).get('downloadId')]
+        if ready:
+            break
+        if time.time() > deadline:
+            raise SystemExit(f'Google Play has not built the universal APK for version code {version_code} yet')
+        time.sleep(poll)
+    download = ready[0]['generatedUniversalApk']['downloadId']
+    data = play.call('GET', f'{play.base}/generatedApks/{version_code}/downloads/{download}:download?alt=media', raw=True)
+    Path(out).write_bytes(data)
+    return ready[0].get('certificateSha256Hash', '')
+
+
 def load_key(path):
     """The Play key, or the Firebase service account already saved for iOS distribution."""
     if path:
@@ -155,6 +185,9 @@ def main():
     up.add_argument('--no-listing', action='store_true')
     commands.add_parser('listing', help='Only sync the store listing')
     commands.add_parser('prepare', help='Enable the API and check Play Console access for the saved key')
+    apk = commands.add_parser('universal-apk', help='Download the Google-signed universal APK of a version code')
+    apk.add_argument('version_code')
+    apk.add_argument('out')
     save = commands.add_parser('save-key', help='Check a service account key against the app and save it to GitHub')
     save.add_argument('file')
     args = parser.parse_args()
@@ -171,6 +204,9 @@ def main():
     if args.command == 'prepare':
         sys.exit(0 if prepare(load_key(args.key), args.package) else 1)
     play = Play(asc.google_token(load_key(args.key), SCOPE), args.package)
+    if args.command == 'universal-apk':
+        print('Google-signed universal APK, app signing certificate SHA-256:', universal_apk(play, args.version_code, args.out))
+        return
     edit = play.edit()
     if args.command == 'upload':
         code, status = upload_bundle(play, edit, args.bundle, args.track, args.notes)

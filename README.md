@@ -8,6 +8,7 @@ LG ThinQ 기기의 현재 온도·습도를 휴대폰과 홈 화면 위젯에서
 
 - 갤럭시(One UI 9)에서 실행 시 "잠재적으로 유해한 앱 감지됨 … 피싱 시도 후에 설치되었습니다"가 뜨면, 공식 스토어가 아닌 경로로 설치한 앱에 표시되는 삼성 보안 안내입니다. 경고 화면의 **자세히 알아보기**에서 Climate Widget을 선택하면 계속 실행됩니다.
 - Android 8 이상: APK를 다운로드하고, Android 안내에 따라 해당 브라우저의 앱 설치를 허용합니다.
+- 1.6.1부터 GitHub APK도 Google Play와 같은 키(Google Play 앱 서명)로 서명합니다. 1.6.0 이하를 GitHub에서 설치했다면 한 번 삭제한 뒤 설치하고 토큰을 다시 입력하세요. 이후에는 GitHub과 Play 어느 쪽으로 받아도 같은 앱으로 업데이트됩니다.
 - iPhone/iPad: 앱 이름은 **Climate Widget for ThinQ**, 홈 화면 표시는 Climate Widget입니다. **TestFlight 배포 준비 중**입니다. 베타 심사 후 릴리즈 페이지와 [설치 페이지](https://seyongida.github.io/lgthinq-climate-widget/)에 실제 초대 링크를 안내합니다. 시뮬레이터 ZIP이나 서명되지 않은 IPA는 iPhone 설치 파일이 아닙니다.
 
 처음 실행하면 **본인의 LG ThinQ Personal Access Token(PAT)**을 입력합니다. 권한은 **기기 목록·상태 조회**가 필요하고, **에너지 사용량 조회**를 더하면 전기 사용량도 보여 줍니다. 제어 권한은 필요 없습니다. 공개 APK에는 개발자의 토큰이 포함되지 않습니다. iOS 앱은 LG 계정 없이 **샘플 데이터로 체험하기**도 지원합니다. 샘플 값은 기기에서 만들며 실제 측정값이 아닙니다.

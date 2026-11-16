@@ -6,8 +6,12 @@ on:
     inputs:
       mode:
         type: choice
-        options: [listing, prepare]
+        options: [listing, prepare, signed-apk]
         default: listing
+      version_code:
+        description: 'For signed-apk: the version code to download'
+        required: false
+        default: ''
 permissions:
   contents: read
 jobs:
@@ -19,4 +23,12 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - name: Run
+        if: inputs.mode != 'signed-apk'
         run: python3 scripts/play.py "${{ inputs.mode || 'listing' }}"
+      - name: Download the Google-signed APK
+        if: inputs.mode == 'signed-apk'
+        env:
+          VERSION_CODE: ${{ inputs.version_code }}
+        run: |
+          python3 scripts/play.py universal-apk "$VERSION_CODE" ThinQ-Climate.apk
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --print-certs ThinQ-Climate.apk | grep -E "SHA-256|DN"

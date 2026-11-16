@@ -14,8 +14,15 @@ class FakePlay(play.Play):
         super().__init__('token', 'pkg')
         self.calls, self.draft_only = [], draft_only
 
-    def call(self, method, url, body=None, data=None, content_type='application/json'):
+    def call(self, method, url, body=None, data=None, content_type='application/json', raw=False):
         self.calls.append((method, url.split('/pkg')[-1], body, content_type))
+        if '/generatedApks/' in url:
+            if url.endswith('?alt=media'):
+                return b'signed-apk'
+            self.polls = getattr(self, 'polls', 0) + 1
+            if self.polls == 1:
+                raise SystemExit('Google Play GET failed: HTTP 404 not ready')
+            return {'generatedApks': [{'certificateSha256Hash': 'abc', 'generatedUniversalApk': {'downloadId': 'd1'}}]}
         if url.endswith('/bundles?uploadType=media'):
             return {'versionCode': 8}
         if '/tracks/' in url and self.draft_only and body['releases'][0]['status'] != 'draft':
@@ -66,6 +73,16 @@ class PlayTests(unittest.TestCase):
     def test_unpublished_app_gets_a_draft_release(self):
         fake = FakePlay(draft_only=True)
         self.assertEqual(play.upload_bundle(fake, 'e1', self.bundle, 'alpha', ''), (8, 'draft'))
+
+
+class SignedApkTests(unittest.TestCase):
+    def test_waits_for_google_and_saves_the_signed_apk(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp) / 'app.apk'
+            fake = FakePlay()
+            self.assertEqual(play.universal_apk(fake, 9, out, wait_seconds=60, poll=0), 'abc')
+            self.assertEqual(out.read_bytes(), b'signed-apk')
+            self.assertTrue(fake.calls[-1][1].endswith('/generatedApks/9/downloads/d1:download?alt=media'))
 
 
 if __name__ == '__main__':
