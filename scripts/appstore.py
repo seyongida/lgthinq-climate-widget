@@ -115,11 +115,15 @@ def editable_app_info(client, app):
         state = info['attributes'].get('state') or info['attributes'].get('appStoreState') or ''
         if state not in ('READY_FOR_DISTRIBUTION', 'READY_FOR_SALE', 'REPLACED_WITH_NEW_INFO'):
             return info['id']
-    return infos[0]['id']
+    return None
 
 
 def set_app_info(client, app, locales):
     info = editable_app_info(client, app)
+    if info is None:
+        # Released app information is locked; Apple opens an editable copy once a new version exists.
+        log('App info is locked (no editable copy yet); category, subtitle and age rating left as they are')
+        return
     client.request('PATCH', f'/v1/appInfos/{info}', body={'data': {'type': 'appInfos', 'id': info, 'relationships': {
         'primaryCategory': {'data': {'type': 'appCategories', 'id': 'UTILITIES'}}}}})
     existing = {l['attributes']['locale']: l for l in client.request('GET', f'/v1/appInfos/{info}/appInfoLocalizations')['data']}
@@ -274,10 +278,11 @@ def publish(client, bundle_id, build_number, contact, submit=True, screenshots=T
         raise SystemExit(f'appstore/metadata has no folder for the primary language {primary}')
     client.request('PATCH', f'/v1/apps/{app}', body={'data': {'type': 'apps', 'id': app,
                    'attributes': {'contentRightsDeclaration': 'USES_THIRD_PARTY_CONTENT'}}})
+    year = time.strftime('%Y')
+    # The version first: for an update, creating it is what makes the app information editable again.
+    version, first = ensure_version(client, app, version_string, build, f"{year} {contact['lastName']}{contact['firstName']}")
     set_app_info(client, app, locales)
     set_free_everywhere(client, app)
-    year = time.strftime('%Y')
-    version, first = ensure_version(client, app, version_string, build, f"{year} {contact['lastName']}{contact['firstName']}")
     log(f'Version {version_string} with build {build_number} (release after approval)')
     existing = {l['attributes']['locale']: l for l in
                 client.request('GET', f'/v1/appStoreVersions/{version}/appStoreVersionLocalizations')['data']}

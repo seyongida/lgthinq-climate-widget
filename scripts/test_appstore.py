@@ -126,6 +126,19 @@ class PublishTests(unittest.TestCase):
         self.assertEqual(ko['whatsNew'], 'ko release_notes')
         self.assertNotIn('versionString', client.bodies('PATCH', '/v1/appStoreVersions/v1')[0]['data']['attributes'])
 
+    def test_locked_app_info_is_left_alone(self):
+        client = FakeClient(priced=True)
+        client.request_orig = client.request
+        def request(method, path, params=None, body=None):
+            if method == 'GET' and path == '/v1/apps/app/appInfos':
+                client.calls.append((method, path, body))
+                return {'data': [{'id': 'info', 'attributes': {'state': 'READY_FOR_DISTRIBUTION'}}]}
+            return client.request_orig(method, path, params, body)
+        client.request = request
+        appstore.publish(client, 'bundle', '9', CONTACT, screenshots=False)
+        self.assertFalse(client.bodies('PATCH', '/v1/appInfos/info'))
+        self.assertTrue(client.bodies('PATCH', '/v1/reviewSubmissions/rs'), 'The version is still submitted')
+
     def test_released_version_is_not_resubmitted(self):
         client = FakeClient(versions=[
             {'id': 'v1', 'attributes': {'versionString': '1.5.0', 'appVersionState': 'READY_FOR_SALE', 'createdDate': '2026-11-01'}}])
